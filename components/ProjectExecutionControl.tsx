@@ -62,21 +62,6 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
     return map;
   }, [allReports, targetProjectId]);
 
-  // 計算本月中報總額
-  const currentMonthTotal = useMemo(() => {
-    return reportData?.expenditures?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-  }, [reportData?.expenditures]);
-
-  // 人事費上限檢查 (假設上限為核定金額的 30%)
-  const personnelBudgetLimit = selectedProject ? selectedProject.approvedAmount * 0.3 : 0;
-  const currentPersonnelSpent = useMemo(() => {
-    const personnelItems = selectedProject?.budgetItems.filter(item => item.category === BudgetCategory.PERSONNEL) || [];
-    const personnelItemIds = personnelItems.map(item => item.id);
-    return reportData?.expenditures
-      ?.filter(exp => personnelItemIds.includes(exp.budgetItemId))
-      .reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
-  }, [reportData?.expenditures, selectedProject]);
-
   const [reportData, setReportData] = useState<Partial<MonthlyReport>>({
     id: initialReport?.id,
     projectId: initialReport?.projectId || targetProjectId,
@@ -94,6 +79,21 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
     });
     return initial;
   });
+
+  // 計算本月中報總額
+  const currentMonthTotal = useMemo(() => {
+    return reportData?.expenditures?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+  }, [reportData?.expenditures]);
+
+  // 人事費上限檢查 (假設上限為核定金額的 30%)
+  const personnelBudgetLimit = selectedProject ? selectedProject.approvedAmount * 0.3 : 0;
+  const currentPersonnelSpent = useMemo(() => {
+    const personnelItems = selectedProject?.budgetItems.filter(item => item.category === BudgetCategory.PERSONNEL) || [];
+    const personnelItemIds = personnelItems.map(item => item.id);
+    return reportData?.expenditures
+      ?.filter(exp => personnelItemIds.includes(exp.budgetItemId))
+      .reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
+  }, [reportData?.expenditures, selectedProject]);
 
   useEffect(() => {
     if (initialReport) {
