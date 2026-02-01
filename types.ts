@@ -163,10 +163,12 @@ export interface GrantDocument {
   name: string;
   status: GrantDocStatus;
   fileUrl?: string; 
-  remark?: string; 
+  remark?: string;
+  checked?: boolean;    // 是否已勾選確認
+  fileName?: string;    // 上傳的檔案名稱
 }
 
-export type GrantDocStatus = '—' | '已上傳' | '審核中' | '已退回' | '待補件' | '已完成';
+export type GrantDocStatus = '—' | '未上傳' | '已上傳' | '已收到' | '審核中' | '已退回' | '待補件' | '已完成';
 export type MOCCheckStatus = '待檢核' | '符合' | '不符合' | '—';
 
 export interface Project {

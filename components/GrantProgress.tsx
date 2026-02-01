@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Project, GrantStage, GrantDocument, GrantDocStatus, UserRole, MOCCheckStatus } from '../types';
-import { Calendar, ChevronDown, CheckCircle2, AlertCircle, FileText, Info, ShieldCheck, Clock, CheckCircle, MessageSquare } from 'lucide-react';
+import { Calendar, ChevronDown, CheckCircle2, AlertCircle, FileText, Info, ShieldCheck, Clock, CheckCircle, MessageSquare, Upload, X, File } from 'lucide-react';
 
 interface GrantProgressProps {
   projects: Project[];
@@ -10,28 +10,28 @@ interface GrantProgressProps {
 }
 
 // 各期檢核文件清單（根據客戶需求）
-const STAGE_DOCUMENTS: { [key: number]: { name: string; status: GrantDocStatus; remark?: string }[] } = {
+const STAGE_DOCUMENTS: { [key: number]: { name: string; status: GrantDocStatus; checked: boolean; remark?: string; fileName?: string }[] } = {
   0: [ // 第一期
-    { name: '補助契約書（一式四份，需用印）', status: '—' as GrantDocStatus },
-    { name: '切結書', status: '—' as GrantDocStatus },
-    { name: '第一期款收據', status: '—' as GrantDocStatus }
+    { name: '補助契約書（一式四份，需用印）', status: '—' as GrantDocStatus, checked: false },
+    { name: '切結書', status: '—' as GrantDocStatus, checked: false },
+    { name: '第一期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   1: [ // 第二期
-    { name: '修正對照表', status: '—' as GrantDocStatus },
-    { name: '修正計畫書', status: '—' as GrantDocStatus },
-    { name: '自行檢核表', status: '—' as GrantDocStatus },
-    { name: '第二期款收據', status: '—' as GrantDocStatus }
+    { name: '修正對照表', status: '—' as GrantDocStatus, checked: false },
+    { name: '修正計畫書', status: '—' as GrantDocStatus, checked: false },
+    { name: '自行檢核表', status: '—' as GrantDocStatus, checked: false },
+    { name: '第二期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   2: [ // 第三期
-    { name: '期中成果報告書', status: '—' as GrantDocStatus },
-    { name: '第一期與第二期款經費明細表', status: '—' as GrantDocStatus },
-    { name: '第三期款收據', status: '—' as GrantDocStatus }
+    { name: '期中成果報告書', status: '—' as GrantDocStatus, checked: false },
+    { name: '第一期與第二期款經費明細表', status: '—' as GrantDocStatus, checked: false },
+    { name: '第三期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   3: [ // 第四期
-    { name: '全案期末成果報告書', status: '—' as GrantDocStatus },
-    { name: '全案執行經費明細表', status: '—' as GrantDocStatus },
-    { name: '第三期與第四期款經費明細表', status: '—' as GrantDocStatus },
-    { name: '第四期款收據', status: '—' as GrantDocStatus }
+    { name: '全案期末成果報告書', status: '—' as GrantDocStatus, checked: false },
+    { name: '全案執行經費明細表', status: '—' as GrantDocStatus, checked: false },
+    { name: '第三期與第四期款經費明細表', status: '—' as GrantDocStatus, checked: false },
+    { name: '第四期款收據', status: '—' as GrantDocStatus, checked: false }
   ]
 };
 
@@ -44,6 +44,7 @@ const MOC_STATUS_OPTIONS = ['未收到', '已收到', '待補件', '已退回', 
 const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject, currentUserRole }) => {
   const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id || '');
   const [expandedRemarkDoc, setExpandedRemarkDoc] = useState<string | null>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const isAdmin = currentUserRole === UserRole.ADMIN;
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -67,7 +68,11 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
         ...grant,
         // 確保每期都有正確的文件清單
         documents: grant.documents && grant.documents.length > 0 
-          ? grant.documents 
+          ? grant.documents.map((doc, dIdx) => ({
+              ...doc,
+              checked: doc.checked ?? false,
+              fileName: doc.fileName ?? ''
+            }))
           : STAGE_DOCUMENTS[idx]?.map(doc => ({ ...doc })) || []
       }))
     : getDefaultGrants();
@@ -97,6 +102,34 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
     if (!selectedProject) return;
     const nextGrants = JSON.parse(JSON.stringify(currentGrants));
     nextGrants[stageIdx].documents[docIdx].remark = value;
+    onUpdateProject({ ...selectedProject, grants: nextGrants });
+  };
+
+  // 處理 checkbox 勾選
+  const handleToggleDocChecked = (stageIdx: number, docIdx: number) => {
+    if (!selectedProject) return;
+    const nextGrants = JSON.parse(JSON.stringify(currentGrants));
+    nextGrants[stageIdx].documents[docIdx].checked = !nextGrants[stageIdx].documents[docIdx].checked;
+    onUpdateProject({ ...selectedProject, grants: nextGrants });
+  };
+
+  // 處理檔案上傳
+  const handleFileUpload = (stageIdx: number, docIdx: number, file: File | null) => {
+    if (!selectedProject || !file) return;
+    const nextGrants = JSON.parse(JSON.stringify(currentGrants));
+    nextGrants[stageIdx].documents[docIdx].fileName = file.name;
+    nextGrants[stageIdx].documents[docIdx].status = '已收到';
+    nextGrants[stageIdx].documents[docIdx].checked = true;
+    onUpdateProject({ ...selectedProject, grants: nextGrants });
+  };
+
+  // 清除已上傳檔案
+  const handleClearFile = (stageIdx: number, docIdx: number) => {
+    if (!selectedProject) return;
+    const nextGrants = JSON.parse(JSON.stringify(currentGrants));
+    nextGrants[stageIdx].documents[docIdx].fileName = '';
+    nextGrants[stageIdx].documents[docIdx].status = '未上傳';
+    nextGrants[stageIdx].documents[docIdx].checked = false;
     onUpdateProject({ ...selectedProject, grants: nextGrants });
   };
 
@@ -142,6 +175,7 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
             <thead>
               <tr className="bg-amber-50 border-b border-amber-100">
                 <th className="px-6 py-4 text-left font-black text-slate-700">撥款期數</th>
+                <th className="px-6 py-4 text-left font-black text-slate-700">檢核文件確認</th>
                 <th className="px-6 py-4 text-center font-black text-slate-700">公文寄出日期</th>
                 <th className="px-6 py-4 text-center font-black text-slate-700">入帳日期</th>
               </tr>
@@ -150,6 +184,23 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
               {currentGrants.map((grant, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4 font-bold text-slate-700">第{idx + 1}期</td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      {grant.documents.map((doc, dIdx) => (
+                        <label key={dIdx} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                          <input 
+                            type="checkbox" 
+                            checked={doc.checked || false}
+                            onChange={() => handleToggleDocChecked(idx, dIdx)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className={`text-sm ${doc.checked ? 'text-slate-700 font-bold' : 'text-slate-500'}`}>
+                            {doc.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-center">
                     <input 
                       type="date" 
@@ -186,7 +237,7 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                   <div>
                     <h3 className="text-2xl font-black text-slate-800">{grant.stage}</h3>
                     <p className="text-slate-400 text-sm font-bold mt-1">
-                      {grant.documents.length} 項文件需檢核
+                      {grant.documents.filter(d => d.checked).length} / {grant.documents.length} 項文件已確認
                     </p>
                   </div>
                </div>
@@ -215,34 +266,88 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                     
                     return (
                       <div key={dIdx} className="space-y-2">
-                        <div className="bg-slate-50/80 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-transparent hover:border-slate-200 transition-all">
-                           <div className="flex items-center gap-4">
-                              <div className="p-2.5 bg-white rounded-xl shadow-sm">
-                                <FileText size={18} className="text-blue-500" />
+                        <div className="bg-slate-50/80 p-5 rounded-2xl border border-transparent hover:border-slate-200 transition-all">
+                           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                 {/* Checkbox */}
+                                 <label className="relative flex items-center cursor-pointer">
+                                   <input 
+                                     type="checkbox" 
+                                     checked={doc.checked || false}
+                                     onChange={() => handleToggleDocChecked(sIdx, dIdx)}
+                                     className="sr-only peer"
+                                   />
+                                   <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                                     doc.checked 
+                                       ? 'bg-blue-600 border-blue-600' 
+                                       : 'bg-white border-slate-300 hover:border-blue-400'
+                                   }`}>
+                                     {doc.checked && <CheckCircle size={16} className="text-white" />}
+                                   </div>
+                                 </label>
+                                 <div className="p-2.5 bg-white rounded-xl shadow-sm">
+                                   <FileText size={18} className="text-blue-500" />
+                                 </div>
+                                 <span className={`font-bold ${doc.checked ? 'text-slate-800' : 'text-slate-500'}`}>
+                                   {doc.name}
+                                 </span>
                               </div>
-                              <span className="font-bold text-slate-700">{doc.name}</span>
-                           </div>
-                           <div className="flex items-center gap-3">
-                             <select 
-                              className={`border rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all cursor-pointer ${getStatusColor(doc.status)}`}
-                              value={doc.status}
-                              onChange={(e) => handleUpdateDocStatus(sIdx, dIdx, e.target.value as GrantDocStatus)}
-                             >
-                               {DOC_STATUS_OPTIONS.map(opt => (
-                                 <option key={opt} value={opt}>{opt}</option>
-                               ))}
-                             </select>
-                             {needsRemark && (
-                               <button
-                                 onClick={() => setExpandedRemarkDoc(expandedRemarkDoc === docKey ? null : docKey)}
-                                 className={`p-2.5 rounded-xl transition-all ${
-                                   expandedRemarkDoc === docKey ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-400 hover:text-amber-500'
-                                 }`}
-                                 title="填寫備註說明"
-                               >
-                                 <MessageSquare size={18} />
-                               </button>
-                             )}
+                              
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {/* 檔案上傳 */}
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="file"
+                                    ref={(el) => fileInputRefs.current[docKey] = el}
+                                    onChange={(e) => handleFileUpload(sIdx, dIdx, e.target.files?.[0] || null)}
+                                    className="hidden"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                  />
+                                  {doc.fileName ? (
+                                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl text-sm font-bold">
+                                      <File size={14} />
+                                      <span className="max-w-[120px] truncate">{doc.fileName}</span>
+                                      <button 
+                                        onClick={() => handleClearFile(sIdx, dIdx)}
+                                        className="p-1 hover:bg-emerald-100 rounded-full"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => fileInputRefs.current[docKey]?.click()}
+                                      className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all"
+                                    >
+                                      <Upload size={14} />
+                                      上傳檔案
+                                    </button>
+                                  )}
+                                </div>
+                                
+                                {/* 狀態選擇 */}
+                                <select 
+                                 className={`border rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all cursor-pointer ${getStatusColor(doc.status)}`}
+                                 value={doc.status}
+                                 onChange={(e) => handleUpdateDocStatus(sIdx, dIdx, e.target.value as GrantDocStatus)}
+                                >
+                                  {DOC_STATUS_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                                
+                                {needsRemark && (
+                                  <button
+                                    onClick={() => setExpandedRemarkDoc(expandedRemarkDoc === docKey ? null : docKey)}
+                                    className={`p-2.5 rounded-xl transition-all ${
+                                      expandedRemarkDoc === docKey ? 'bg-amber-100 text-amber-600' : 'bg-white text-slate-400 hover:text-amber-500'
+                                    }`}
+                                    title="填寫備註說明"
+                                  >
+                                    <MessageSquare size={18} />
+                                  </button>
+                                )}
+                              </div>
                            </div>
                         </div>
                         

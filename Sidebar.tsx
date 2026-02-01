@@ -10,7 +10,8 @@ import {
   PlusCircle,
   DollarSign,
   ClipboardCheck,
-  Users
+  Users,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
     { id: 'projects', icon: FolderKanban, label: '計畫清單' },
     ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
     { id: 'reports', icon: FileText, label: '月報填報' },
+    { id: 'budget', icon: FileSpreadsheet, label: '財務管控' },
     { id: 'grants', icon: DollarSign, label: '撥付進度' },
     { id: 'coaching', icon: ClipboardCheck, label: '輔導紀錄' },
     ...(isAdmin ? [{ id: 'accounts', icon: Users, label: '帳號管理' }] : []),

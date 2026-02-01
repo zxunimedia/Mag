@@ -11,6 +11,7 @@ import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
 import AccountManagement from './components/AccountManagement';
+import BudgetControl from './components/BudgetControl';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus } from 'lucide-react';
 
@@ -140,6 +141,12 @@ const App: React.FC = () => {
       if (exists) return prev.map(r => r.id === record.id ? record : r);
       return [...prev, record];
     });
+  };
+
+  // 刪除月報
+  const handleDeleteMonthlyReport = (reportId: string) => {
+    if (!window.confirm('確定要刪除這份月報嗎？')) return;
+    setMonthlyReports(prev => prev.filter(r => r.id !== reportId));
   };
 
   // 處理跨系統資料匯入
@@ -277,7 +284,7 @@ const App: React.FC = () => {
                                   <span className="bg-blue-50 px-3 py-1 rounded-lg">{mr.month}</span>
                                </td>
                                <td className="px-10 py-6 text-sm font-black text-emerald-600">${totalSpent.toLocaleString()}</td>
-                               <td className="px-10 py-6 text-center">
+                               <td className="px-10 py-6 text-center flex justify-center gap-2">
                                  <button 
                                     onClick={() => {
                                       setSelectedProject(proj!);
@@ -288,6 +295,12 @@ const App: React.FC = () => {
                                  >
                                    <Pencil size={20} />
                                  </button>
+                                 <button 
+                                    onClick={() => handleDeleteMonthlyReport(mr.id!)}
+                                    className="p-3 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-md rounded-xl transition-all"
+                                 >
+                                   <Trash2 size={20} />
+                                 </button>
                                </td>
                              </tr>
                            )
@@ -297,6 +310,7 @@ const App: React.FC = () => {
                    </div>
                 </div>
               )}
+              {activeTab === 'budget' && <BudgetControl projects={visibleProjects} onUpdateProject={handleUpdateProject} />}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
               {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} currentUserRole={currentUser.role} />}
               
