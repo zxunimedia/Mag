@@ -265,6 +265,30 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
             <h3 className="text-2xl font-black tracking-tight">計畫基本資料</h3>
           </div>
           <div className="p-10 space-y-8">
+            {/* 計畫名稱和執行單位 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">計畫名稱 <span className="text-red-500">*</span></label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="請輸入計畫名稱..."
+                  value={formData.name || ''}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">執行單位 <span className="text-red-500">*</span></label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  placeholder="請輸入執行單位..."
+                  value={formData.executingUnit || ''}
+                  onChange={e => setFormData({ ...formData, executingUnit: e.target.value })}
+                />
+              </div>
+            </div>
+
             {/* 計畫代表人 */}
             <ContactSection title="計畫代表人" field="representative" icon={UserCircle} />
             
