@@ -7,21 +7,29 @@ import {
   TrendingUp, 
   Settings,
   Mountain,
-  PlusCircle
+  PlusCircle,
+  DollarSign,
+  ClipboardCheck,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  userRole?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) => {
+  const isAdmin = userRole === 'MOC_ADMIN';
+  
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板總覽' },
     { id: 'projects', icon: FolderKanban, label: '計畫清單' },
-    { id: 'submission', icon: PlusCircle, label: '新案提案申請' },
-    { id: 'reports', icon: FileText, label: '管考報告' },
-    { id: 'analytics', icon: TrendingUp, label: '預算分析' },
+    ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
+    { id: 'reports', icon: FileText, label: '月報填報' },
+    { id: 'grants', icon: DollarSign, label: '撥付進度' },
+    { id: 'coaching', icon: ClipboardCheck, label: '輔導紀錄' },
+    ...(isAdmin ? [{ id: 'accounts', icon: Users, label: '帳號管理' }] : []),
   ];
 
   return (

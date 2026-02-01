@@ -160,7 +160,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
       <section className="space-y-8">
         <div className="flex items-center gap-4 px-2">
           <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-200">1</div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">工作進度填報 (OKR)</h2>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">進度填報</h2>
         </div>
         {selectedProject.objectives.map((obj) => (
           <div key={obj.id} className="space-y-8">
@@ -230,7 +230,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
         <div className="flex justify-between items-center px-2">
           <div className="flex items-center gap-4">
              <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-emerald-200">2</div>
-             <h2 className="text-2xl font-black text-slate-800 tracking-tight">經費支出明細填報</h2>
+             <h2 className="text-2xl font-black text-slate-800 tracking-tight">支出明細</h2>
           </div>
           <button 
             onClick={addExpenditure}
@@ -340,7 +340,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
         <section className="space-y-10">
           <div className="flex items-center gap-4 px-2">
             <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-100">3</div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">輔導紀錄意見回應</h2>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">輔導紀錄回應</h2>
           </div>
           <div className="space-y-8">
             {pendingCoachingRecords.map(record => (
@@ -367,9 +367,12 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
                       </p>
                    </div>
                    <div className="space-y-4">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] pl-2">執行單位正式回應</label>
+                      <label className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] pl-2 flex items-center gap-2">
+                        <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></span>
+                        單位回應
+                      </label>
                       <textarea 
-                        className="w-full bg-white border-2 border-slate-100 rounded-[32px] p-8 min-h-[200px] outline-none font-bold text-slate-800 focus:border-amber-500 focus:ring-8 focus:ring-amber-500/5 transition-all shadow-sm"
+                        className="w-full bg-amber-50/50 border-2 border-amber-200 rounded-[32px] p-8 min-h-[200px] outline-none font-bold text-slate-800 focus:border-amber-500 focus:ring-8 focus:ring-amber-500/5 transition-all shadow-sm"
                         placeholder="請針對委員所提之輔導意見，具體回覆後續改善規劃或辦理情形..."
                         value={coachingFeedbacks[record.id]}
                         onChange={(e) => setCoachingFeedbacks({...coachingFeedbacks, [record.id]: e.target.value})}

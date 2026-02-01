@@ -49,6 +49,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   };
 
   const handleOpenEdit = (record: CoachingRecord) => {
+    // 允許所有人編輯輔導紀錄
     setEditingRecord({...record});
     setShowModal(true);
   };
@@ -100,7 +101,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                   <div className="flex justify-between items-start">
                     <span className="px-4 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">{record.serialNumber}</span>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => handleOpenEdit(record)} className="p-2 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100"><Pencil size={18} /></button>
+                       <button onClick={() => handleOpenEdit(record)} className="p-2 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100" title="編輯紀錄"><Pencil size={18} /></button>
                        <button className="p-2 text-red-400 bg-red-50 rounded-xl hover:bg-red-100"><Trash2 size={18} /></button>
                     </div>
                   </div>

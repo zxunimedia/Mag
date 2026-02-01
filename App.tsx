@@ -10,6 +10,7 @@ import CoachingRecords from './components/CoachingRecords';
 import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
+import AccountManagement from './components/AccountManagement';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus } from 'lucide-react';
 
@@ -317,6 +318,9 @@ const App: React.FC = () => {
                     setActiveTab('projects');
                   }} 
                 />
+              )}
+              {activeTab === 'accounts' && isAdmin && (
+                <AccountManagement currentUser={currentUser} />
               )}
             </>
           )}
