@@ -11,7 +11,6 @@ import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
 import AccountManagement from './components/AccountManagement';
-import BudgetControl from './components/BudgetControl';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus } from 'lucide-react';
 
@@ -318,7 +317,6 @@ const App: React.FC = () => {
                    </div>
                 </div>
               )}
-              {activeTab === 'budget' && <BudgetControl projects={visibleProjects} onUpdateProject={handleUpdateProject} />}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
               {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} currentUserRole={currentUser.role} />}
               
