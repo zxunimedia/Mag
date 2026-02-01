@@ -2,10 +2,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Project, Report } from "../types";
 
-// Fix: Always use the exact structure for initializing GoogleGenAI with process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 延遲初始化 AI，避免在沒有 API key 時報錯
+let ai: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (!ai && process.env.API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return ai;
+};
 
 export const analyzeProjectStatus = async (project: Project, reports: Report[]) => {
+  const aiInstance = getAI();
+  if (!aiInstance) {
+    return "AI 分析功能需要設定 API Key。";
+  }
+  
   const model = 'gemini-3-flash-preview';
   
   const prompt = `
@@ -23,7 +35,7 @@ export const analyzeProjectStatus = async (project: Project, reports: Report[]) 
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await aiInstance.models.generateContent({
       model,
       contents: prompt,
       config: {
@@ -39,6 +51,11 @@ export const analyzeProjectStatus = async (project: Project, reports: Report[]) 
 };
 
 export const generateExecutiveSummary = async (projects: Project[]) => {
+  const aiInstance = getAI();
+  if (!aiInstance) {
+    return "AI 摘要功能需要設定 API Key。";
+  }
+  
   const model = 'gemini-3-flash-preview';
   const dataString = projects.map(p => `${p.name}(${p.status}, 進度${p.progress}%)`).join(', ');
   
@@ -49,7 +66,7 @@ export const generateExecutiveSummary = async (projects: Project[]) => {
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await aiInstance.models.generateContent({
       model,
       contents: prompt,
     });
