@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Mountain, Mail, Lock, Loader2, ArrowRight, UserPlus, ShieldCheck, Trash2, X } from 'lucide-react';
+import { Mountain, Mail, Lock, Loader2, ArrowRight, UserPlus, ShieldCheck } from 'lucide-react';
 import { User, UserRole } from '../types';
 
 interface LoginProps {
@@ -56,18 +56,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }, 1000);
   };
 
-  const handleDeleteAccount = () => {
-    if (window.confirm("確定要刪除此帳號嗎？此動作無法撤銷，所有關聯資料將被移除。")) {
-      setLoading(true);
-      setTimeout(() => {
-        alert("帳號已成功從系統中移除。");
-        setLoading(false);
-        setEmail('');
-        setPassword('');
-        setView('LOGIN');
-      }, 1000);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center p-6">
@@ -119,12 +107,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <UserPlus size={14} /> 註冊新帳號
               </button>
             </div>
-            
-            <div className="pt-4 border-t border-slate-50 flex justify-center">
-              <button type="button" onClick={handleDeleteAccount} className="text-[10px] font-black text-red-300 hover:text-red-500 flex items-center gap-1 transition-all">
-                <Trash2 size={12} /> 刪除目前輸入的帳號
-              </button>
-            </div>
+
           </form>
         )}
 
