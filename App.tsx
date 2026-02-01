@@ -207,7 +207,8 @@ const App: React.FC = () => {
               projects={projects} 
               monthlyReports={monthlyReports} 
               coachingRecords={coachingRecords} 
-              onImport={handleImportData} 
+              onImport={handleImportData}
+              onBack={() => setActiveTab('dashboard')}
             />
           )}
 

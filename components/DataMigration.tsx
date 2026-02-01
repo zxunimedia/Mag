@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Download, Upload, CheckCircle2, AlertTriangle, FileJson, ArrowRightLeft, Loader2, Database } from 'lucide-react';
+import { Download, Upload, CheckCircle2, AlertTriangle, FileJson, ArrowRightLeft, Loader2, Database, ArrowLeft } from 'lucide-react';
 import { Project, MonthlyReport, CoachingRecord } from '../types';
 
 interface DataMigrationProps {
@@ -8,9 +8,10 @@ interface DataMigrationProps {
   monthlyReports: MonthlyReport[];
   coachingRecords: CoachingRecord[];
   onImport: (data: any) => void;
+  onBack?: () => void;
 }
 
-const DataMigration: React.FC<DataMigrationProps> = ({ projects, monthlyReports, coachingRecords, onImport }) => {
+const DataMigration: React.FC<DataMigrationProps> = ({ projects, monthlyReports, coachingRecords, onImport, onBack }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error' | 'none', message: string }>({ type: 'none', message: '' });
@@ -83,6 +84,17 @@ const DataMigration: React.FC<DataMigrationProps> = ({ projects, monthlyReports,
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20 animate-in fade-in duration-500">
+      {/* 返回按鈕 */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-bold transition-colors mb-4"
+        >
+          <ArrowLeft size={20} />
+          <span>返回主頁</span>
+        </button>
+      )}
+      
       <div className="text-center space-y-4">
         <div className="w-24 h-24 bg-slate-900 text-amber-400 rounded-[32px] flex items-center justify-center mx-auto shadow-2xl">
            <Database size={48} />
