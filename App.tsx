@@ -213,11 +213,16 @@ const App: React.FC = () => {
 
           {/* 編輯模式：計畫資料/預算 */}
           {editMode === 'BASIC' && selectedProject ? (
-            <ProjectForm project={selectedProject} onBack={() => setEditMode('NONE')} onSave={(data) => {
-              handleUpdateProject({ ...selectedProject, ...data } as Project);
-              setEditMode('NONE');
-              setSelectedProject(null);
-            }} />
+            <ProjectForm 
+              project={selectedProject} 
+              onBack={() => setEditMode('NONE')} 
+              onSave={(data) => {
+                handleUpdateProject({ ...selectedProject, ...data } as Project);
+                setEditMode('NONE');
+                setSelectedProject(null);
+              }}
+              currentUserRole={currentUser.role}
+            />
           ) : 
           
           /* 編輯模式：月報/支出/進度 */
@@ -336,7 +341,8 @@ const App: React.FC = () => {
                     } as Project;
                     handleUpdateProject(newProject);
                     setActiveTab('projects');
-                  }} 
+                  }}
+                  currentUserRole={currentUser.role}
                 />
               )}
               {activeTab === 'accounts' && isAdmin && (

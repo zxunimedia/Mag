@@ -24,6 +24,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       // Admin Check
       if ((email === 'mag@atipd.tw' && password === 'chin286') || (email === 'admin@moc.gov.tw' && password === 'admin123')) {
         onLogin({ id: 'admin', email, role: UserRole.ADMIN });
+      } else if (email === 'operator@test.com' && password === 'test123') {
+        // 操作人員測試帳號
+        onLogin({ id: 'op-test', email, role: UserRole.OPERATOR, unitId: 'unit-101' });
       } else if (email.includes('@') && password.length >= 6) {
         onLogin({ id: 'op-' + Date.now(), email, role: UserRole.OPERATOR, unitId: 'unit-101' });
       } else {
