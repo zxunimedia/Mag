@@ -341,7 +341,7 @@ const App: React.FC = () => {
                 />
               )}
               {activeTab === 'accounts' && isAdmin && (
-                <AccountManagement currentUser={currentUser} />
+                <AccountManagement currentUser={currentUser} projects={projects} />
               )}
             </>
           )}
