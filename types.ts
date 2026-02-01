@@ -40,6 +40,13 @@ export interface ContactInfo {
   email: string;
 }
 
+// 撥付進度表格欄位
+export interface GrantPaymentRecord {
+  stage: string;           // 撥款款期
+  documentSentDate?: string; // 公文發出日期
+  paymentReceivedDate?: string; // 入帳日期
+}
+
 export interface AssessmentResult {
   status: KRStatus;
   strategy: string;
@@ -118,6 +125,8 @@ export interface KeyResult {
   description: string;
   targetValue: number;
   expectedDate: string;
+  budgetAmount?: number;      // 預算金額
+  actualAmount?: number;      // 實際執行金額
 }
 
 export interface Objective {
@@ -141,8 +150,10 @@ export interface BudgetItem {
 export interface GrantStage {
   stage: string; 
   documents: GrantDocument[];
-  submissionDate?: string; // 檢送日期
-  deadline?: string;       // 截止日期
+  submissionDate?: string;       // 檢送日期
+  deadline?: string;             // 截止日期
+  documentSentDate?: string;     // 公文發出日期
+  paymentReceivedDate?: string;  // 入帳日期
   paymentDate?: string; 
   mocFinalCheck: MOCCheckStatus; // 文化部獨立檢核點
   mocRemark?: string;            // 文化部審核意見

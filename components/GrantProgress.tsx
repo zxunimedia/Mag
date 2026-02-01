@@ -79,7 +79,7 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                   </div>
                   <div>
                     <h3 className="text-3xl font-black text-slate-800 tracking-tight">{grant.stage}</h3>
-                    <div className="flex flex-wrap items-center gap-6 mt-3">
+                    <div className="flex flex-wrap items-center gap-4 mt-3">
                        <div className="flex items-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 px-4 py-2 rounded-xl">
                           <Calendar size={16} className="text-blue-500" /> 
                           檢送日期：
@@ -100,6 +100,28 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                             value={grant.deadline || ''}
                             onChange={(e) => handleUpdateGrant(sIdx, 'deadline', e.target.value)}
                             placeholder="設定期限"
+                          />
+                       </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                       <div className="flex items-center gap-2 text-purple-500 text-sm font-bold bg-purple-50/50 px-4 py-2 rounded-xl border border-purple-100/50">
+                          <FileText size={16} /> 
+                          公文發出日期：
+                          <input 
+                            type="date" 
+                            className="bg-transparent border-none p-0 text-purple-600 font-black focus:ring-0 w-32"
+                            value={grant.documentSentDate || ''}
+                            onChange={(e) => handleUpdateGrant(sIdx, 'documentSentDate', e.target.value)}
+                          />
+                       </div>
+                       <div className="flex items-center gap-2 text-emerald-500 text-sm font-bold bg-emerald-50/50 px-4 py-2 rounded-xl border border-emerald-100/50">
+                          <CheckCircle size={16} /> 
+                          入帳日期：
+                          <input 
+                            type="date" 
+                            className="bg-transparent border-none p-0 text-emerald-600 font-black focus:ring-0 w-32"
+                            value={grant.paymentReceivedDate || ''}
+                            onChange={(e) => handleUpdateGrant(sIdx, 'paymentReceivedDate', e.target.value)}
                           />
                        </div>
                     </div>
