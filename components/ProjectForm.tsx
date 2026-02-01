@@ -583,11 +583,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                  <Calculator size={28} />
                  <h3 className="text-2xl font-black tracking-tight">經費預算編列</h3>
               </div>
-              {isAdmin && (
-                <button onClick={addBudgetItem} className="px-6 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-black flex items-center gap-2">
-                   <Plus size={18} /> 新增細目
-                </button>
-              )}
+              <button onClick={addBudgetItem} className="px-6 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-black flex items-center gap-2">
+                 <Plus size={18} /> 新增細目
+              </button>
            </div>
            <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -625,9 +623,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                              <span className="font-black text-emerald-600 font-mono">${item.totalPrice.toLocaleString()}</span>
                           </td>
                           <td className="px-8 py-4">
-                             {isAdmin && (
-                               <button onClick={() => setFormData({...formData, budgetItems: formData.budgetItems?.filter(i => i.id !== item.id)})} className="text-red-200 hover:text-red-500"><Trash2 size={16} /></button>
-                             )}
+                             <button onClick={() => setFormData({...formData, budgetItems: formData.budgetItems?.filter(i => i.id !== item.id)})} className="text-red-200 hover:text-red-500"><Trash2 size={16} /></button>
                           </td>
                        </tr>
                     ))}

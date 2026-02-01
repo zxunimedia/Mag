@@ -17,6 +17,7 @@ import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, Log
 const MOCK_PROJECTS: Project[] = [
   {
     id: '1',
+    projectCode: '114-原鄉-001',  // 計畫編號
     unitId: 'unit-101',
     unitName: '拔馬部落文化發展協會',
     name: '從庫房到衣著,拔馬部落衣飾復刻及日常化計畫',
@@ -323,7 +324,7 @@ const App: React.FC = () => {
                 </div>
               )}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
-              {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} currentUserRole={currentUser.role} />}
+              {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
               
               {/* 新案提案申請：儲存為新計畫 */}
               {activeTab === 'submission' && isAdmin && (

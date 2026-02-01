@@ -8,16 +8,21 @@ interface CoachingRecordsProps {
   coachingRecords: CoachingRecord[];
   onSaveRecord: (record: CoachingRecord) => void;
   currentUserRole: UserRole;
+  currentUserUnitId?: string;  // 操作人員的單位 ID，用於過濾可見紀錄
 }
 
-const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, currentUserRole }) => {
-  const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id || '');
+const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, currentUserRole, currentUserUnitId }) => {
+  // 操作人員只能看到自己單位的計畫
+  const visibleProjects = currentUserRole === UserRole.ADMIN 
+    ? projects 
+    : projects.filter(p => p.unitId === currentUserUnitId);
+  const [selectedProjectId, setSelectedProjectId] = useState(visibleProjects[0]?.id || '');
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Partial<CoachingRecord> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = currentUserRole === UserRole.ADMIN;
-  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
   const initAssessment = (): AssessmentResult => ({ status: KRStatus.ON_TRACK, strategy: '' });
@@ -25,7 +30,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
 
   const handleOpenNew = () => {
     if (!isAdmin) return;
-    const serial = `${selectedProjectId}-CR-${(filteredRecords.length + 1).toString().padStart(2, '0')}`;
+    // 使用計畫編號生成序號，格式：計畫編號-流水號
+    const projectCode = selectedProject?.projectCode || selectedProjectId;
+    const serial = `${projectCode}-${(filteredRecords.length + 1).toString().padStart(3, '0')}`;
     
     // 從計畫的願景中取得所有關鍵結果作為工作項目
     const keyResults: VisitRow[] = [];
@@ -97,7 +104,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-3 font-black text-slate-800 outline-none shadow-sm"
               >
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {visibleProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               {isAdmin && (
                 <button onClick={handleOpenNew} className="px-8 py-3 bg-[#2D3E50] text-white rounded-2xl font-black shadow-lg hover:bg-slate-700 transition-all flex items-center gap-2">
@@ -338,6 +345,18 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                   <AlertTriangle size={14} /> 至少上傳四張照片
                                 </p>
                              </div>
+                          </td>
+                       </tr>
+                       {/* 操作人員意見回應 */}
+                       <tr>
+                          <td className="record-header" colSpan={2}>操作人員意見回應</td>
+                          <td className="record-cell" colSpan={4}>
+                             <textarea 
+                                className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
+                                placeholder="請操作人員填寫對此次輔導紀錄的意見回應..."
+                                value={editingRecord.operatorFeedback || ''}
+                                onChange={e => setEditingRecord({...editingRecord, operatorFeedback: e.target.value})}
+                             />
                           </td>
                        </tr>
                     </tbody>

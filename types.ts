@@ -200,6 +200,7 @@ export type MOCCheckStatus = '待檢核' | '符合' | '不符合' | '—';
 
 export interface Project {
   id: string;
+  projectCode?: string;      // 計畫編號（用於輔導紀錄序號）
   unitId: string;
   unitName: string;
   name: string;
