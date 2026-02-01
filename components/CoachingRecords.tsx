@@ -27,6 +27,20 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
     if (!isAdmin) return;
     const serial = `${selectedProjectId}-CR-${(filteredRecords.length + 1).toString().padStart(2, '0')}`;
     
+    // 從計畫的願景中取得所有關鍵結果作為工作項目
+    const keyResults: VisitRow[] = [];
+    if (selectedProject?.visions) {
+      selectedProject.visions.forEach(vision => {
+        vision.objectives.forEach(obj => {
+          obj.keyResults.forEach(kr => {
+            keyResults.push(initVisitRow(kr.id, kr.description));
+          });
+        });
+      });
+    }
+    // 如果沒有關鍵結果，預設兩個空白項目
+    const visitContents = keyResults.length > 0 ? keyResults : [initVisitRow('1'), initVisitRow('2')];
+    
     setEditingRecord({
       id: `cr-${Date.now()}`,
       projectId: selectedProjectId,
@@ -40,7 +54,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       endTime: '12:00',
       attendees: { commissioners: false, staff: false, representatives: false, liaison: false, others: '' },
       overallResults: { progress: initAssessment(), content: initAssessment(), records: initAssessment(), vouchers: initAssessment() },
-      visitContents: [initVisitRow('1'), initVisitRow('2')],
+      visitContents: visitContents,
       communityMobilization: initVisitRow('cm', '全計畫捲動在地社區/部落參與人數'),
       communityConnection: initVisitRow('cc', '全計畫串連社群個數'),
       photos: [],
