@@ -210,6 +210,18 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </table>
                           </td>
                        </tr>
+                       {/* 訪視重點 - 新增欄位 */}
+                       <tr>
+                          <td className="record-header">訪視重點</td>
+                          <td colSpan={5} className="record-cell">
+                             <textarea 
+                               className="record-input min-h-[100px]" 
+                               value={editingRecord.keyPoints || ''} 
+                               onChange={e => setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
+                               placeholder="請輸入本次訪視的重點事項..."
+                             />
+                          </td>
+                       </tr>
                        {/* 訪視內容 */}
                        <tr>
                           <td className="record-header">訪視內容</td>
@@ -264,22 +276,53 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                        <tr>
                           <td className="record-header">訪視照片</td>
                           <td colSpan={5} className="record-cell min-h-[200px]">
-                             <div className="flex flex-col items-center justify-center gap-4 py-10 text-slate-400">
+                             <div className="flex flex-col items-center justify-center gap-4 py-6 text-slate-400">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full px-4">
-                                   {[1, 2, 3, 4].map(i => (
-                                      <div key={i} className="aspect-video bg-slate-50 border border-dashed border-slate-200 rounded-xl flex items-center justify-center relative overflow-hidden group">
-                                         {editingRecord.photos?.[i-1] ? (
-                                            <img src={editingRecord.photos[i-1]} className="w-full h-full object-cover" />
+                                   {[0, 1, 2, 3].map(i => (
+                                      <div key={i} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-400 transition-all">
+                                         {editingRecord.photos?.[i] ? (
+                                            <>
+                                              <img src={editingRecord.photos[i]} className="w-full h-full object-cover" alt={`訪視照片 ${i+1}`} />
+                                              <button 
+                                                onClick={() => {
+                                                  const newPhotos = [...(editingRecord.photos || [])];
+                                                  newPhotos.splice(i, 1);
+                                                  setEditingRecord({...editingRecord, photos: newPhotos});
+                                                }}
+                                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                              >
+                                                <X size={14} />
+                                              </button>
+                                            </>
                                          ) : (
-                                            <Camera size={24} />
+                                            <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
+                                              <Camera size={28} className="text-slate-300" />
+                                              <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                className="hidden" 
+                                                onChange={(e) => {
+                                                  const file = e.target.files?.[0];
+                                                  if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                      const newPhotos = [...(editingRecord.photos || [])];
+                                                      newPhotos[i] = ev.target?.result as string;
+                                                      setEditingRecord({...editingRecord, photos: newPhotos});
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }
+                                                }}
+                                              />
+                                            </label>
                                          )}
-                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <button className="p-2 bg-white rounded-full text-slate-800"><Upload size={16} /></button>
-                                         </div>
                                       </div>
                                    ))}
                                 </div>
-                                <p className="text-xs font-black italic">至少四張照片</p>
+                                <p className="text-xs font-black text-amber-600 flex items-center gap-2">
+                                  <AlertTriangle size={14} /> 至少上傳四張照片
+                                </p>
                              </div>
                           </td>
                        </tr>
