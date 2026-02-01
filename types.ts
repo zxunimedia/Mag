@@ -20,6 +20,12 @@ export enum BudgetCategory {
   MISCELLANEOUS = '雜支'
 }
 
+// 經費來源
+export enum FundingSource {
+  SUBSIDY = '補助款',
+  SELF_FUNDED = '自籌款'
+}
+
 export enum UserRole {
   ADMIN = 'MOC_ADMIN',
   OPERATOR = 'UNIT_OPERATOR'
@@ -68,23 +74,36 @@ export interface KRReport {
   improvementStrategy: string;
 }
 
+// 工作事項執行紀錄（連動關鍵結果 KR）
+export interface WorkItemReport {
+  id: string;
+  krId: string;              // 對應的關鍵結果 ID
+  executionNote: string;     // 執行內容說明
+  achievedValue: number;     // 當月達成數
+  attachments: string[];     // 附件/佐證資料
+}
+
+// 支出明細（連動預算科目）
 export interface ExpenditureDetail {
   id: string;
-  budgetItemId: string;
-  amount: number;
-  description: string;
-  receiptUrls: string[];
+  budgetItemId: string;      // 對應的預算科目 ID
+  fundingSource: FundingSource; // 經費來源：補助款/自籌款
+  amount: number;            // 本月支出金額
+  description: string;       // 支出說明
+  receiptUrls: string[];     // 憑證/發票圖片
 }
 
 export interface MonthlyReport {
   id?: string;
   projectId: string;
   month: string;
-  krReports: KRReport[];
-  expenditures: ExpenditureDetail[];
-  fanpageLinks?: string[];
-  summary: string;
+  workItems: WorkItemReport[];     // 工作事項執行紀錄
+  expenditures: ExpenditureDetail[]; // 支出明細
+  fanpageLinks?: string[];         // 粉絲頁貼文連結
+  summary: string;                 // 成果說明
   submittedAt?: string;
+  // 向下相容舊版欄位
+  krReports?: KRReport[];
 }
 
 export interface CoachingRecord {
