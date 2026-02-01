@@ -136,6 +136,14 @@ export interface Objective {
   keyResults: KeyResult[];
 }
 
+// 願景層級：願景 → 目標 → 關鍵結果
+export interface Vision {
+  id: string;
+  title: string;           // 願景標題
+  description?: string;    // 願景描述
+  objectives: Objective[];  // 該願景下的目標
+}
+
 export interface BudgetItem {
   id: string;
   category: BudgetCategory;
@@ -190,8 +198,8 @@ export interface Project {
   approvedAmount: number;
   commissioner: ContactInfo;
   chiefStaff: ContactInfo;
-  vision: string; 
-  objectives: Objective[]; 
+  visionText?: string;      // 舊版願景文字（向下相容）
+  visions: Vision[];         // 新版願景結構：願景 → 目標 → 關鍵結果 
   budgetItems: BudgetItem[];
   grants: GrantStage[];
   coachingRecords: CoachingRecord[];

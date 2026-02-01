@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, GrantStage, GrantDocStatus, BudgetItem, BudgetCategory } from '../types';
-import { Plus, Trash2, Save, ArrowLeft, PlusCircle, MinusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users } from 'lucide-react';
+import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, GrantStage, GrantDocStatus, BudgetItem, BudgetCategory, Vision } from '../types';
+import { Plus, Trash2, Save, ArrowLeft, PlusCircle, MinusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users, Layers } from 'lucide-react';
 
 interface ProjectFormProps {
   project?: Project;
@@ -26,9 +26,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
     sites: [''],
     appliedAmount: 0,
     approvedAmount: 0,
-    vision: '',
+    visions: [],
     grants: [],
-    objectives: [],
     budgetItems: []
   });
 
@@ -96,30 +95,67 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
     setFormData({ ...formData, grants: nextGrants });
   };
 
-  // 目標操作
-  const addObjective = () => {
+  // ========== 願景操作 ==========
+  const addVision = () => {
+    const newVision: Vision = {
+      id: `vision-${Date.now()}`,
+      title: '',
+      description: '',
+      objectives: []
+    };
+    setFormData({ ...formData, visions: [...(formData.visions || []), newVision] });
+  };
+
+  const updateVision = (visionId: string, field: keyof Vision, value: any) => {
+    setFormData({
+      ...formData,
+      visions: formData.visions?.map(v => v.id === visionId ? { ...v, [field]: value } : v)
+    });
+  };
+
+  const removeVision = (visionId: string) => {
+    setFormData({ ...formData, visions: formData.visions?.filter(v => v.id !== visionId) });
+  };
+
+  // ========== 目標操作（在願景下）==========
+  const addObjective = (visionId: string) => {
     const newObj: Objective = {
       id: `obj-${Date.now()}`,
       title: '',
       weight: 0,
       keyResults: []
     };
-    setFormData({ ...formData, objectives: [...(formData.objectives || []), newObj] });
-  };
-
-  const updateObjective = (objId: string, field: keyof Objective, value: any) => {
     setFormData({
       ...formData,
-      objectives: formData.objectives?.map(o => o.id === objId ? { ...o, [field]: value } : o)
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? { ...v, objectives: [...v.objectives, newObj] } : v
+      )
     });
   };
 
-  const removeObjective = (objId: string) => {
-    setFormData({ ...formData, objectives: formData.objectives?.filter(o => o.id !== objId) });
+  const updateObjective = (visionId: string, objId: string, field: keyof Objective, value: any) => {
+    setFormData({
+      ...formData,
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? {
+          ...v,
+          objectives: v.objectives.map(o => o.id === objId ? { ...o, [field]: value } : o)
+        } : v
+      )
+    });
   };
 
-  // 關鍵結果操作
-  const addKeyResult = (objId: string) => {
+  const removeObjective = (visionId: string, objId: string) => {
+    setFormData({
+      ...formData,
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? { ...v, objectives: v.objectives.filter(o => o.id !== objId) } : v
+      )
+    });
+  };
+
+  // ========== 關鍵結果操作 ==========
+  const addKeyResult = (visionId: string, objId: string) => {
     const newKR: KeyResult = {
       id: `kr-${Date.now()}`,
       description: '',
@@ -130,29 +166,44 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
     };
     setFormData({
       ...formData,
-      objectives: formData.objectives?.map(o => 
-        o.id === objId ? { ...o, keyResults: [...o.keyResults, newKR] } : o
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? {
+          ...v,
+          objectives: v.objectives.map(o => 
+            o.id === objId ? { ...o, keyResults: [...o.keyResults, newKR] } : o
+          )
+        } : v
       )
     });
   };
 
-  const updateKeyResult = (objId: string, krId: string, field: keyof KeyResult, value: any) => {
+  const updateKeyResult = (visionId: string, objId: string, krId: string, field: keyof KeyResult, value: any) => {
     setFormData({
       ...formData,
-      objectives: formData.objectives?.map(o => 
-        o.id === objId ? {
-          ...o,
-          keyResults: o.keyResults.map(kr => kr.id === krId ? { ...kr, [field]: value } : kr)
-        } : o
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? {
+          ...v,
+          objectives: v.objectives.map(o => 
+            o.id === objId ? {
+              ...o,
+              keyResults: o.keyResults.map(kr => kr.id === krId ? { ...kr, [field]: value } : kr)
+            } : o
+          )
+        } : v
       )
     });
   };
 
-  const removeKeyResult = (objId: string, krId: string) => {
+  const removeKeyResult = (visionId: string, objId: string, krId: string) => {
     setFormData({
       ...formData,
-      objectives: formData.objectives?.map(o => 
-        o.id === objId ? { ...o, keyResults: o.keyResults.filter(kr => kr.id !== krId) } : o
+      visions: formData.visions?.map(v => 
+        v.id === visionId ? {
+          ...v,
+          objectives: v.objectives.map(o => 
+            o.id === objId ? { ...o, keyResults: o.keyResults.filter(kr => kr.id !== krId) } : o
+          )
+        } : v
       )
     });
   };
@@ -258,21 +309,20 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
                 <label className="text-sm font-bold text-slate-600">類型：</label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉' })} />
-                  <span className="font-bold">原鄉</span>
+                  <span className="text-sm font-bold">原鄉</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市' })} />
-                  <span className="font-bold">都市</span>
+                  <span className="text-sm font-bold">都市</span>
                 </label>
               </div>
               <div className="space-y-3">
-                {(formData.sites || ['']).map((site, idx) => (
+                {formData.sites?.map((site, idx) => (
                   <div key={idx} className="flex items-center gap-3">
-                    <span className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-xs font-black">{idx + 1}</span>
                     <input 
                       type="text" 
                       className="form-input flex-1"
-                      placeholder={`請輸入${formData.siteType === '原鄉' ? '原鄉' : '都市'}地點...`}
+                      placeholder={`實施地點 ${idx + 1}`}
                       value={site}
                       onChange={e => updateSite(idx, e.target.value)}
                     />
@@ -320,139 +370,187 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
           </div>
         </section>
 
-        {/* 2. 計畫願景 (Vision) */}
+        {/* 2. 計畫願景與 OKR（三層結構：願景 → 目標 → 關鍵結果）*/}
         <section className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-          <div className="section-header">
-            <div className="section-icon"><Eye size={24} /></div>
-            <h3 className="text-2xl font-black tracking-tight">計畫願景 (Vision)</h3>
-          </div>
-          <div className="p-10">
-             <textarea 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-xl font-black text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/10 min-h-[120px] transition-all"
-              placeholder="請輸入計畫的長期發展願景..."
-              value={formData.vision || ''}
-              onChange={e => setFormData({...formData, vision: e.target.value})}
-             />
-          </div>
-        </section>
-
-        {/* 3. OKR 執行管控 */}
-        <section className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-           <div className="bg-[#1a1a1a] p-8 flex items-center justify-between text-white border-b border-white/5">
+          <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2d2d2d] p-8 flex items-center justify-between text-white">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 border-2 border-[#FFC107] rounded-full flex items-center justify-center text-[#FFC107]">
-                <Target size={24} />
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <Layers size={28} />
               </div>
-              <h3 className="text-2xl font-black tracking-tight">計畫目標與關鍵結果 (OKR)</h3>
+              <div>
+                <h3 className="text-2xl font-black tracking-tight">願景與 OKR 管理</h3>
+                <p className="text-white/60 text-sm mt-1">願景 → 目標 (Objective) → 關鍵結果 (Key Result)</p>
+              </div>
             </div>
-            <button onClick={addObjective} className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-black flex items-center gap-2">
-              <PlusCircle size={18} /> 新增目標
+            <button onClick={addVision} className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black rounded-xl font-black flex items-center gap-2 shadow-lg shadow-amber-500/30 transition-all">
+              <PlusCircle size={18} /> 新增願景
             </button>
           </div>
-          <div className="p-0 divide-y divide-slate-100">
-             {formData.objectives?.map((obj, oIdx) => (
-                <div key={obj.id} className="p-10 space-y-6">
-                   <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 flex-1">
-                        <span className="text-xs font-black text-slate-400 whitespace-nowrap">目標 {oIdx + 1}</span>
-                        <input 
-                          type="text" 
-                          className="w-full bg-transparent border-b-2 border-slate-200 py-3 text-xl font-black text-slate-800 outline-none focus:border-amber-500 transition-all"
-                          placeholder="請輸入目標名稱..."
-                          value={obj.title}
-                          onChange={e => updateObjective(obj.id, 'title', e.target.value)}
-                        />
-                        <div className="flex items-center gap-2 whitespace-nowrap">
-                          <span className="text-xs font-bold text-slate-400">權重</span>
+          
+          <div className="divide-y divide-slate-100">
+            {formData.visions?.map((vision, vIdx) => (
+              <div key={vision.id} className="p-8 space-y-6">
+                {/* 願景標題 */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-200">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black text-lg">
+                        {vIdx + 1}
+                      </div>
+                      <span className="text-xs font-black text-amber-600 uppercase tracking-widest">願景 VISION</span>
+                    </div>
+                    <button onClick={() => removeVision(vision.id)} className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    className="w-full bg-white border-2 border-amber-200 rounded-xl px-4 py-3 text-xl font-black text-slate-800 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all"
+                    placeholder="請輸入願景標題..."
+                    value={vision.title}
+                    onChange={e => updateVision(vision.id, 'title', e.target.value)}
+                  />
+                  <textarea 
+                    className="w-full mt-3 bg-white border border-amber-100 rounded-xl px-4 py-3 text-sm text-slate-600 outline-none focus:border-amber-300 min-h-[80px] resize-none"
+                    placeholder="願景描述（選填）..."
+                    value={vision.description || ''}
+                    onChange={e => updateVision(vision.id, 'description', e.target.value)}
+                  />
+                </div>
+
+                {/* 該願景下的目標列表 */}
+                <div className="pl-6 border-l-4 border-amber-200 space-y-6">
+                  {vision.objectives.map((obj, oIdx) => (
+                    <div key={obj.id} className="bg-slate-50 rounded-2xl p-6 space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+                            O{oIdx + 1}
+                          </div>
                           <input 
-                            type="number" 
-                            className="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-center font-bold"
-                            value={obj.weight}
-                            onChange={e => updateObjective(obj.id, 'weight', Number(e.target.value))}
+                            type="text" 
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-lg font-black text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                            placeholder="請輸入目標名稱..."
+                            value={obj.title}
+                            onChange={e => updateObjective(vision.id, obj.id, 'title', e.target.value)}
                           />
-                          <span className="text-xs font-bold text-slate-400">%</span>
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <span className="text-xs font-bold text-slate-400">權重</span>
+                            <input 
+                              type="number" 
+                              className="w-16 bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-center font-bold"
+                              value={obj.weight}
+                              onChange={e => updateObjective(vision.id, obj.id, 'weight', Number(e.target.value))}
+                            />
+                            <span className="text-xs font-bold text-slate-400">%</span>
+                          </div>
+                        </div>
+                        <button onClick={() => removeObjective(vision.id, obj.id)} className="p-2 text-red-200 hover:text-red-500">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      {/* 關鍵結果表格 */}
+                      <div className="bg-white rounded-xl overflow-hidden border border-slate-200">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                              <th className="px-4 py-3 text-left">關鍵結果 (KR)</th>
+                              <th className="px-4 py-3 text-center w-32">預計完成日期</th>
+                              <th className="px-4 py-3 text-right w-28">預算金額</th>
+                              <th className="px-4 py-3 text-right w-28">實際執行金額</th>
+                              <th className="px-4 py-3 w-12"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {obj.keyResults.map((kr, krIdx) => (
+                              <tr key={kr.id} className="hover:bg-slate-50/50">
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">KR{krIdx + 1}</span>
+                                    <input 
+                                      type="text" 
+                                      className="flex-1 bg-transparent border-none outline-none font-bold text-slate-700"
+                                      placeholder="關鍵結果描述..."
+                                      value={kr.description}
+                                      onChange={e => updateKeyResult(vision.id, obj.id, kr.id, 'description', e.target.value)}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input 
+                                    type="date" 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-center"
+                                    value={kr.expectedDate}
+                                    onChange={e => updateKeyResult(vision.id, obj.id, kr.id, 'expectedDate', e.target.value)}
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input 
+                                    type="number" 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-right font-mono text-blue-600"
+                                    value={kr.budgetAmount || 0}
+                                    onChange={e => updateKeyResult(vision.id, obj.id, kr.id, 'budgetAmount', Number(e.target.value))}
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input 
+                                    type="number" 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-right font-mono text-emerald-600"
+                                    value={kr.actualAmount || 0}
+                                    onChange={e => updateKeyResult(vision.id, obj.id, kr.id, 'actualAmount', Number(e.target.value))}
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button onClick={() => removeKeyResult(vision.id, obj.id, kr.id)} className="text-red-200 hover:text-red-500">
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+                          <button 
+                            onClick={() => addKeyResult(vision.id, obj.id)} 
+                            className="text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                          >
+                            <Plus size={14} /> 新增關鍵結果
+                          </button>
                         </div>
                       </div>
-                      <button onClick={() => removeObjective(obj.id)} className="p-3 text-red-200 hover:text-red-500"><Trash2 size={20} /></button>
-                   </div>
-                   
-                   {/* 關鍵結果表格 */}
-                   <div className="bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-100">
-                     <table className="w-full text-sm">
-                       <thead>
-                         <tr className="bg-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                           <th className="px-4 py-3 text-left">關鍵結果</th>
-                           <th className="px-4 py-3 text-center w-32">預計完成日期</th>
-                           <th className="px-4 py-3 text-right w-28">預算金額</th>
-                           <th className="px-4 py-3 text-right w-28">實際執行金額</th>
-                           <th className="px-4 py-3 w-12"></th>
-                         </tr>
-                       </thead>
-                       <tbody className="divide-y divide-slate-100">
-                         {obj.keyResults.map((kr, krIdx) => (
-                           <tr key={kr.id} className="bg-white hover:bg-slate-50/50">
-                             <td className="px-4 py-3">
-                               <input 
-                                 type="text" 
-                                 className="w-full bg-transparent border-none outline-none font-bold text-slate-700"
-                                 placeholder={`關鍵結果 ${krIdx + 1}`}
-                                 value={kr.description}
-                                 onChange={e => updateKeyResult(obj.id, kr.id, 'description', e.target.value)}
-                               />
-                             </td>
-                             <td className="px-4 py-3">
-                               <input 
-                                 type="date" 
-                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-center"
-                                 value={kr.expectedDate}
-                                 onChange={e => updateKeyResult(obj.id, kr.id, 'expectedDate', e.target.value)}
-                               />
-                             </td>
-                             <td className="px-4 py-3">
-                               <input 
-                                 type="number" 
-                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-right font-mono text-blue-600"
-                                 value={kr.budgetAmount || 0}
-                                 onChange={e => updateKeyResult(obj.id, kr.id, 'budgetAmount', Number(e.target.value))}
-                               />
-                             </td>
-                             <td className="px-4 py-3">
-                               <input 
-                                 type="number" 
-                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-right font-mono text-emerald-600"
-                                 value={kr.actualAmount || 0}
-                                 onChange={e => updateKeyResult(obj.id, kr.id, 'actualAmount', Number(e.target.value))}
-                               />
-                             </td>
-                             <td className="px-4 py-3">
-                               <button onClick={() => removeKeyResult(obj.id, kr.id)} className="text-red-200 hover:text-red-500">
-                                 <Trash2 size={16} />
-                               </button>
-                             </td>
-                           </tr>
-                         ))}
-                       </tbody>
-                     </table>
-                     <div className="p-4 border-t border-slate-100">
-                       <button 
-                         onClick={() => addKeyResult(obj.id)} 
-                         className="text-xs font-black text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                       >
-                         <Plus size={14} /> 新增關鍵結果
-                       </button>
-                     </div>
-                   </div>
+                    </div>
+                  ))}
+
+                  {/* 新增目標按鈕 */}
+                  <button 
+                    onClick={() => addObjective(vision.id)} 
+                    className="w-full py-4 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 font-black hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center gap-2 transition-all"
+                  >
+                    <PlusCircle size={18} /> 在此願景下新增目標
+                  </button>
                 </div>
-             ))}
-             {(!formData.objectives || formData.objectives.length === 0) && (
-               <div className="p-20 text-center text-slate-300 font-bold">
-                 尚未設定目標，請點擊上方「新增目標」按鈕
-               </div>
-             )}
+              </div>
+            ))}
+
+            {(!formData.visions || formData.visions.length === 0) && (
+              <div className="p-20 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Layers size={40} className="text-slate-300" />
+                </div>
+                <p className="text-slate-400 font-bold mb-4">尚未設定願景</p>
+                <button 
+                  onClick={addVision}
+                  className="px-6 py-3 bg-amber-500 text-black rounded-xl font-black hover:bg-amber-400 inline-flex items-center gap-2"
+                >
+                  <PlusCircle size={18} /> 新增第一個願景
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* 4. 經費預算明細 */}
+        {/* 3. 經費預算明細 */}
         <section className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
            <div className="bg-[#2E7D5D] p-8 flex items-center justify-between text-white">
               <div className="flex items-center gap-4">
@@ -506,35 +604,39 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave }) =>
                  </tbody>
               </table>
               {(!formData.budgetItems || formData.budgetItems.length === 0) && (
-                <div className="p-10 text-center text-slate-300 font-bold">
-                  尚未編列預算，請點擊上方「新增細目」按鈕
+                <div className="p-12 text-center text-slate-300 font-bold">
+                  尚未新增預算項目
+                </div>
+              )}
+              {formData.budgetItems && formData.budgetItems.length > 0 && (
+                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                  <div className="text-right">
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">總計</span>
+                    <div className="text-3xl font-black text-emerald-600 font-mono">
+                      ${formData.budgetItems.reduce((sum, item) => sum + item.totalPrice, 0).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
               )}
            </div>
         </section>
 
-        {/* 5. 撥付截止日期管理 */}
+        {/* 4. 各期款預計完成日期 */}
         <section className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-blue-600 p-8 flex items-center gap-4 text-white">
-            <Clock size={32} />
-            <h3 className="text-2xl font-black tracking-tight">撥付截止日期 (Deadline) 管理</h3>
+          <div className="section-header">
+            <div className="section-icon"><Clock size={24} /></div>
+            <h3 className="text-2xl font-black tracking-tight">各期款預計完成日期</h3>
           </div>
           <div className="p-10">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {[0, 1, 2, 3].map((idx) => (
-                <div key={idx} className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 space-y-3">
-                   <div className="flex items-center gap-2 text-blue-700 font-black">
-                      <span className="w-6 h-6 bg-blue-700 text-white rounded-lg flex items-center justify-center text-xs">
-                        {idx + 1}
-                      </span>
-                      第 {idx + 1} 期撥款
-                   </div>
-                   <input 
-                    type="text" 
-                    className="w-full bg-white border border-blue-100 rounded-xl px-4 py-2.5 text-sm font-bold text-blue-600 focus:ring-4 focus:ring-blue-500/10 outline-none"
-                    placeholder="如: 115/2/15"
-                    value={formData.grants?.[idx]?.deadline || ''}
-                    onChange={(e) => updateGrantDeadline(idx, e.target.value)}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(stage => (
+                <div key={stage} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-3">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">第 {stage} 期款</label>
+                  <input 
+                    type="date" 
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10"
+                    value={formData.grants?.[stage - 1]?.deadline || ''}
+                    onChange={e => updateGrantDeadline(stage - 1, e.target.value)}
                   />
                 </div>
               ))}

@@ -36,15 +36,22 @@ const MOCK_PROJECTS: Project[] = [
     approvedAmount: 850000,
     commissioner: { name: '陳專家', title: '輔導委員', email: 'chen@moc.gov.tw' },
     chiefStaff: { name: '林專員', title: '文化部主責', email: 'lin@moc.gov.tw' },
-    vision: '從庫房到衣著,拔馬部落衣飾復刻及日常化計畫',
+    visionText: '從庫房到衣著,拔馬部落衣飾復刻及日常化計畫',
     description: '建構部落傳統衣飾之復刻、日常化推廣之脈絡。',
-    objectives: [
+    visions: [
       {
-        id: 'obj-1',
-        title: '建構拔馬部落衣飾復刻之脈絡',
-        weight: 10,
-        keyResults: [
-          { id: 'kr-1-1', description: '辦理計畫說明會1場次', targetValue: 1, expectedDate: '2026-04-30' }
+        id: 'vision-1',
+        title: '建構部落傳統衣飾之復刻、日常化推廣之脈絡',
+        description: '透過系統性的調查與復刻，讓部落傳統衣飾重新回到日常生活中',
+        objectives: [
+          {
+            id: 'obj-1',
+            title: '建構拔馬部落衣飾復刻之脈絡',
+            weight: 10,
+            keyResults: [
+              { id: 'kr-1-1', description: '辦理計畫說明枃1場次', targetValue: 1, expectedDate: '2026-04-30' }
+            ]
+          }
         ]
       }
     ],
