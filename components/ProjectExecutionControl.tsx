@@ -94,20 +94,41 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && activeExpId) {
+    const files = e.target.files;
+    if (files && files.length > 0 && activeExpId) {
       setIsUploading(true);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        // 模擬上傳延遲
+      const currentExp = reportData.expenditures?.find(exp => exp.id === activeExpId);
+      const existingUrls = currentExp?.receiptUrls || [];
+      
+      const readPromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            resolve(event.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      Promise.all(readPromises).then(newUrls => {
         setTimeout(() => {
-          updateExpenditure(activeExpId, 'receiptUrls', [base64]);
+          updateExpenditure(activeExpId, 'receiptUrls', [...existingUrls, ...newUrls]);
           setActiveExpId(null);
           setIsUploading(false);
-        }, 800);
-      };
-      reader.readAsDataURL(file);
+          // 重置 file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 500);
+      });
+    }
+  };
+
+  const removeReceiptUrl = (expId: string, urlIndex: number) => {
+    const exp = reportData.expenditures?.find(e => e.id === expId);
+    if (exp && exp.receiptUrls) {
+      const newUrls = exp.receiptUrls.filter((_, i) => i !== urlIndex);
+      updateExpenditure(expId, 'receiptUrls', newUrls);
     }
   };
 
@@ -256,14 +277,37 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
                           <option value="業務費">業務費</option>
                           <option value="雜支">雜支</option>
                         </select>
-                        <input 
-                          type="text" 
-                          className="text-2xl font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 w-full placeholder-slate-200" 
-                          placeholder="請輸入支出項目內容 (如：講師鐘點費)"
+                        {/* 從預算表格帶入的下拉選單 */}
+                        <select
+                          className="flex-1 text-lg font-black text-slate-800 bg-white border border-slate-200 rounded-2xl px-4 py-2 outline-none cursor-pointer"
                           value={exp.budgetItemId}
                           onChange={(e) => updateExpenditure(exp.id, 'budgetItemId', e.target.value)}
-                        />
+                        >
+                          <option value="">請選擇預算項目...</option>
+                          {selectedProject.budgetItems
+                            .filter(item => {
+                              if (exp.description === '人事費') return item.category === 'PERSONNEL';
+                              if (exp.description === '業務費') return item.category === 'OPERATING';
+                              if (exp.description === '雜支') return item.category === 'MISCELLANEOUS';
+                              return true;
+                            })
+                            .map(item => (
+                              <option key={item.id} value={item.id}>
+                                {item.name} (預算: ${item.totalPrice.toLocaleString()})
+                              </option>
+                            ))
+                          }
+                          <option value="other">其他 - 自行輸入</option>
+                        </select>
                       </div>
+                      {exp.budgetItemId === 'other' && (
+                        <input 
+                          type="text" 
+                          className="w-full text-lg font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 outline-none" 
+                          placeholder="請輸入支出項目內容"
+                          onChange={(e) => updateExpenditure(exp.id, 'budgetItemId', `other:${e.target.value}`)}
+                        />
+                      )}
                    </div>
                    <div className="flex flex-col items-end gap-2">
                       <button onClick={() => removeExpenditure(exp.id)} className="text-slate-200 hover:text-red-500 transition-all p-2 bg-slate-50 rounded-xl">
@@ -281,46 +325,46 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
                    </div>
                 </div>
                 
-                <div className="pt-6 border-t border-slate-50 flex items-center justify-between gap-6">
-                  {exp.receiptUrls && exp.receiptUrls.length > 0 ? (
-                    <div className="flex items-center gap-4 bg-emerald-50/50 p-2 pr-6 rounded-3xl border border-emerald-100 group/file shadow-sm animate-in zoom-in-95 duration-300">
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-white">
-                         <img src={exp.receiptUrls[0]} className="w-full h-full object-cover" />
-                         <button 
-                           onClick={() => setPreviewImageUrl(exp.receiptUrls[0])}
-                           className="absolute inset-0 bg-emerald-600/60 text-white opacity-0 group-hover/file:opacity-100 transition-opacity flex items-center justify-center"
-                         >
+                <div className="pt-6 border-t border-slate-50 space-y-4">
+                  {/* 已上傳的單據縮覽圖 */}
+                  {exp.receiptUrls && exp.receiptUrls.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {exp.receiptUrls.map((url, idx) => (
+                        <div key={idx} className="relative group/thumb">
+                          <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-200 shadow-md bg-white cursor-pointer hover:border-emerald-400 transition-all">
+                            <img src={url} className="w-full h-full object-cover" onClick={() => setPreviewImageUrl(url)} />
+                          </div>
+                          <button 
+                            onClick={() => removeReceiptUrl(exp.id, idx)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                          >
+                            <X size={14} />
+                          </button>
+                          <button 
+                            onClick={() => setPreviewImageUrl(url)}
+                            className="absolute inset-0 bg-emerald-600/60 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center rounded-xl"
+                          >
                             <ZoomIn size={20} />
-                         </button>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-emerald-800 uppercase tracking-widest mb-1">單據已成功上傳</span>
-                        <div className="flex items-center gap-4">
-                           <button 
-                             onClick={() => setPreviewImageUrl(exp.receiptUrls[0])}
-                             className="text-xs font-black text-emerald-600 hover:underline flex items-center gap-1"
-                           >
-                             <Eye size={12} /> 點擊預覽
-                           </button>
-                           <button onClick={() => updateExpenditure(exp.id, 'receiptUrls', [])} className="text-xs font-black text-red-400 hover:text-red-600">
-                             移除檔案
-                           </button>
+                          </button>
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ) : (
+                  )}
+                  
+                  {/* 上傳按鈕和核銷序號 */}
+                  <div className="flex items-center justify-between gap-6">
                     <button 
                       onClick={() => { setActiveExpId(exp.id); fileInputRef.current?.click(); }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 text-blue-600 text-sm font-black hover:bg-blue-50 px-8 py-4 rounded-2xl border border-blue-100 transition-all shadow-sm group/btn"
+                      className="flex items-center gap-3 text-blue-600 text-sm font-black hover:bg-blue-50 px-6 py-3 rounded-2xl border border-blue-100 transition-all shadow-sm group/btn"
                     >
-                      {isUploading && activeExpId === exp.id ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} className="group-hover/btn:rotate-12 transition-transform" />}
-                      {isUploading && activeExpId === exp.id ? '檔案處理中...' : '上傳憑證/發票 (支援圖片預覽)'}
+                      {isUploading && activeExpId === exp.id ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={18} className="group-hover/btn:rotate-12 transition-transform" />}
+                      {isUploading && activeExpId === exp.id ? '檔案處理中...' : (exp.receiptUrls && exp.receiptUrls.length > 0 ? '繼續上傳更多單據' : '上傳憑證/發票 (可多選)')}
                     </button>
-                  )}
-                  <div className="flex flex-col items-end">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">核銷序號</p>
-                    <p className="text-xs font-mono font-bold text-slate-400"># {exp.id.slice(-6)}</p>
+                    <div className="flex flex-col items-end">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">核銷序號</p>
+                      <p className="text-xs font-mono font-bold text-slate-400"># {exp.id.slice(-6)}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -390,7 +434,8 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
         ref={fileInputRef} 
         className="hidden" 
         onChange={handleFileSelect} 
-        accept="image/*" 
+        accept="image/*,application/pdf" 
+        multiple
       />
 
       {/* 底部提交列 */}
