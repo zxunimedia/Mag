@@ -150,10 +150,23 @@ const App: React.FC = () => {
     });
   };
 
+  // 刪除輔導紀錄
+  const handleDeleteCoachingRecord = (recordId: string) => {
+    setCoachingRecords(prev => prev.filter(r => r.id !== recordId));
+  };
+
   // 刪除月報
   const handleDeleteMonthlyReport = (reportId: string) => {
     if (!window.confirm('確定要刪除這份月報嗎？')) return;
     setMonthlyReports(prev => prev.filter(r => r.id !== reportId));
+  };
+
+  // 刪除計畫
+  const handleDeleteProject = (projectId: string) => {
+    if (!window.confirm('確定要刪除這個計畫嗎？相關的月報和輔導紀錄也會一併刪除。')) return;
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    setMonthlyReports(prev => prev.filter(r => r.projectId !== projectId));
+    setCoachingRecords(prev => prev.filter(r => r.projectId !== projectId));
   };
 
   // 處理跨系統資料匯入
@@ -259,6 +272,7 @@ const App: React.FC = () => {
                   projects={visibleProjects} 
                   onSelectProject={setSelectedProject} 
                   onAddNew={() => setActiveTab('submission')}
+                  onDeleteProject={handleDeleteProject}
                   userRole={currentUser.role}
                 />
               )}
@@ -324,7 +338,7 @@ const App: React.FC = () => {
                 </div>
               )}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
-              {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
+              {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} onDeleteRecord={handleDeleteCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
               
               {/* 新案提案申請：儲存為新計畫 */}
               {activeTab === 'submission' && isAdmin && (

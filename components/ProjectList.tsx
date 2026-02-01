@@ -1,17 +1,19 @@
 
 import React, { useState } from 'react';
 import { Project, ProjectStatus, UserRole } from '../types';
-import { Search, Filter, Plus, MoreVertical, Building2 } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, Building2, Trash2, Pencil } from 'lucide-react';
 
 interface ProjectListProps {
   projects: Project[];
   onSelectProject: (p: Project) => void;
   onAddNew?: () => void;
+  onDeleteProject?: (projectId: string) => void;
   userRole?: string;
 }
 
-const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, onAddNew, userRole }) => {
+const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, onAddNew, onDeleteProject, userRole }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const isAdmin = userRole === UserRole.ADMIN;
 
   const filteredProjects = projects.filter(p => 
@@ -107,9 +109,41 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, on
                   </span>
                 </td>
                 <td className="px-6 py-5 text-center">
-                  <button className="p-2 text-gray-300 hover:text-gray-600">
-                    <MoreVertical size={16} />
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onSelectProject(project); }}
+                      className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="編輯計畫"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    {isAdmin && onDeleteProject && (
+                      deleteConfirm === project.id ? (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => { onDeleteProject(project.id); setDeleteConfirm(null); }}
+                            className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600"
+                          >
+                            確認
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirm(null)}
+                            className="px-2 py-1 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(project.id); }}
+                          className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          title="刪除計畫"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

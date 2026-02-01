@@ -7,11 +7,13 @@ interface CoachingRecordsProps {
   projects: Project[];
   coachingRecords: CoachingRecord[];
   onSaveRecord: (record: CoachingRecord) => void;
+  onDeleteRecord?: (recordId: string) => void;
   currentUserRole: UserRole;
   currentUserUnitId?: string;  // 操作人員的單位 ID，用於過濾可見紀錄
 }
 
-const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, currentUserRole, currentUserUnitId }) => {
+const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, onDeleteRecord, currentUserRole, currentUserUnitId }) => {
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   // 操作人員只能看到自己單位的計畫
   const visibleProjects = currentUserRole === UserRole.ADMIN 
     ? projects 
@@ -123,7 +125,16 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                     <span className="px-4 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">{record.serialNumber}</span>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                        <button onClick={() => handleOpenEdit(record)} className="p-2 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100" title="編輯紀錄"><Pencil size={18} /></button>
-                       <button className="p-2 text-red-400 bg-red-50 rounded-xl hover:bg-red-100"><Trash2 size={18} /></button>
+                       {currentUserRole === UserRole.ADMIN && onDeleteRecord && (
+                         deleteConfirm === record.id ? (
+                           <div className="flex items-center gap-1">
+                             <button onClick={() => { onDeleteRecord(record.id); setDeleteConfirm(null); }} className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600">確認</button>
+                             <button onClick={() => setDeleteConfirm(null)} className="px-2 py-1 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300">取消</button>
+                           </div>
+                         ) : (
+                           <button onClick={() => setDeleteConfirm(record.id)} className="p-2 text-red-400 bg-red-50 rounded-xl hover:bg-red-100" title="刪除紀錄"><Trash2 size={18} /></button>
+                         )
+                       )}
                     </div>
                   </div>
                   <h4 className="text-lg font-black text-slate-800 truncate">{selectedProject?.name}</h4>
