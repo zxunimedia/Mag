@@ -22,7 +22,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     setTimeout(() => {
       // Admin Check
-      if (email === 'mag@atipd.tw' && password === 'chin286') {
+      if ((email === 'mag@atipd.tw' && password === 'chin286') || (email === 'admin@moc.gov.tw' && password === 'admin123')) {
         onLogin({ id: 'admin', email, role: UserRole.ADMIN });
       } else if (email.includes('@') && password.length >= 6) {
         onLogin({ id: 'op-' + Date.now(), email, role: UserRole.OPERATOR, unitId: 'unit-101' });
