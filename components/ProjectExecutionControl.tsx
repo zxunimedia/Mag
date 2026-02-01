@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, Objective, KeyResult, KRStatus, MonthlyReport, KRReport, ExpenditureDetail, BudgetItem, BudgetCategory, CoachingRecord } from '../types';
-import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2 } from 'lucide-react';
+import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2, Link2, ExternalLink } from 'lucide-react';
 
 interface ProjectExecutionControlProps {
   projects: Project[];
@@ -45,7 +45,9 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
     if (initialReport) {
       setReportData(initialReport);
     } else if (selectedProject) {
-      const initialKRs: KRReport[] = selectedProject.objectives.flatMap(obj => 
+      // 從 visions 結構中取得所有 objectives 和 keyResults
+      const allObjectives = selectedProject.visions?.flatMap(v => v.objectives) || [];
+      const initialKRs: KRReport[] = allObjectives.flatMap(obj => 
         obj.keyResults.map(kr => ({
           krId: kr.id,
           executionNote: '',
@@ -183,7 +185,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
           <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-200">1</div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">進度填報</h2>
         </div>
-        {selectedProject.objectives.map((obj) => (
+        {(selectedProject.visions?.flatMap(v => v.objectives) || []).map((obj) => (
           <div key={obj.id} className="space-y-8">
             <h3 className="px-8 py-3 bg-slate-100/50 rounded-2xl inline-block text-xs font-black text-slate-500 uppercase tracking-[0.2em] border border-slate-200/50">
               策略目標：{obj.title}
@@ -380,11 +382,81 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
         </div>
       </section>
 
-      {/* 3. 輔導紀錄回應 */}
+      {/* 3. 原村粉絲頁上傳紀錄 */}
+      <section className="space-y-10">
+        <div className="flex justify-between items-center px-2">
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-purple-200">3</div>
+             <h2 className="text-2xl font-black text-slate-800 tracking-tight">原村粉絲頁上傳紀錄</h2>
+          </div>
+          <button 
+            onClick={() => {
+              setReportData(prev => ({
+                ...prev,
+                fanpageLinks: [...(prev.fanpageLinks || []), '']
+              }));
+            }}
+            className="px-8 py-4 bg-purple-50 text-purple-700 border border-purple-100 rounded-2xl font-black text-sm hover:bg-purple-600 hover:text-white transition-all flex items-center gap-3 shadow-sm"
+          >
+            <Plus size={20} /> 新增貼文連結
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {reportData.fanpageLinks?.map((link, index) => (
+            <div key={index} className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden relative border-l-[12px] border-l-purple-500 hover:shadow-xl transition-all group p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-50 rounded-xl text-purple-500">
+                  <Link2 size={24} />
+                </div>
+                <input 
+                  type="url"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-purple-500/10 transition-all"
+                  placeholder="請貼上原村粉絲頁貼文連結 (https://www.facebook.com/...)"
+                  value={link}
+                  onChange={(e) => {
+                    const newLinks = [...(reportData.fanpageLinks || [])];
+                    newLinks[index] = e.target.value;
+                    setReportData(prev => ({ ...prev, fanpageLinks: newLinks }));
+                  }}
+                />
+                {link && (
+                  <a 
+                    href={link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 transition-all"
+                    title="開啟連結"
+                  >
+                    <ExternalLink size={20} />
+                  </a>
+                )}
+                <button 
+                  onClick={() => {
+                    const newLinks = reportData.fanpageLinks?.filter((_, i) => i !== index) || [];
+                    setReportData(prev => ({ ...prev, fanpageLinks: newLinks }));
+                  }}
+                  className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {(!reportData.fanpageLinks || reportData.fanpageLinks.length === 0) && (
+            <div className="py-16 text-center bg-white rounded-[40px] border border-dashed border-slate-200 flex flex-col items-center gap-4">
+               <Link2 size={48} className="text-slate-100" />
+               <p className="text-slate-300 font-black italic tracking-widest text-lg">尚未新增粉絲頁貼文連結，請點擊上方按鈕新增。</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 4. 輔導紀錄回應 */}
       {pendingCoachingRecords.length > 0 && (
         <section className="space-y-10">
           <div className="flex items-center gap-4 px-2">
-            <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-100">3</div>
+            <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-100">4</div>
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">輔導紀錄回應</h2>
           </div>
           <div className="space-y-8">
