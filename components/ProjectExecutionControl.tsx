@@ -300,11 +300,12 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ proje
                           <option value="other">其他 - 自行輸入</option>
                         </select>
                       </div>
-                      {exp.budgetItemId === 'other' && (
+                      {(exp.budgetItemId === 'other' || exp.budgetItemId?.startsWith('other:')) && (
                         <input 
                           type="text" 
                           className="w-full text-lg font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 outline-none" 
                           placeholder="請輸入支出項目內容"
+                          value={exp.budgetItemId?.startsWith('other:') ? exp.budgetItemId.slice(6) : ''}
                           onChange={(e) => updateExpenditure(exp.id, 'budgetItemId', `other:${e.target.value}`)}
                         />
                       )}
