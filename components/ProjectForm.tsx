@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, GrantStage, GrantDocStatus, BudgetItem, BudgetCategory, Vision } from '../types';
 import { Plus, Trash2, Save, ArrowLeft, PlusCircle, MinusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users, Layers, ChevronDown } from 'lucide-react';
 import { ALL_INDIGENOUS_TOWNSHIPS, TAIWAN_CITIES, getDistrictsByCity } from '../data/taiwanLocations';
@@ -35,13 +35,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     budgetItems: []
   });
 
-  // 聯絡人更新
-  const updateContact = (field: 'representative' | 'liaison' | 'commissioner' | 'chiefStaff', key: keyof ContactInfo, value: string) => {
-    setFormData({
-      ...formData,
-      [field]: { ...(formData[field] as ContactInfo), [key]: value }
-    });
-  };
+  // 聯絡人更新 - 使用函數式更新避免閉包問題導致的輸入框跳掉
+  const updateContact = useCallback((field: 'representative' | 'liaison' | 'commissioner' | 'chiefStaff', key: keyof ContactInfo, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: { ...(prev[field] as ContactInfo), [key]: value }
+    }));
+  }, []);
 
   // 實施地點操作
   const addSite = () => {
@@ -212,9 +212,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     });
   };
 
-  // 聯絡人輸入區塊組件 - 使用穩定的 key 和 id 防止焦點跳轉
-  const ContactSection = ({ title, field, icon: Icon }: { title: string; field: 'representative' | 'liaison' | 'commissioner' | 'chiefStaff'; icon: any }) => {
-    const contact = formData[field] as ContactInfo;
+  // 聯絡人輸入區塊組件 - 使用受控輸入框並避免重新渲染導致的焦點跳轉
+  const renderContactSection = useCallback((title: string, field: 'representative' | 'liaison' | 'commissioner' | 'chiefStaff', Icon: any, contactData: ContactInfo | undefined) => {
     return (
       <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 space-y-4">
         <div className="flex items-center gap-3 text-slate-700 font-black">
@@ -224,53 +223,48 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <input 
             id={`${field}-name`}
-            key={`${field}-name`}
             type="text" 
             placeholder="姓名" 
             className="form-input" 
-            value={contact?.name || ''} 
+            value={contactData?.name || ''} 
             onChange={e => updateContact(field, 'name', e.target.value)} 
           />
           <input 
             id={`${field}-title`}
-            key={`${field}-title`}
             type="text" 
             placeholder="職稱" 
             className="form-input" 
-            value={contact?.title || ''} 
+            value={contactData?.title || ''} 
             onChange={e => updateContact(field, 'title', e.target.value)} 
           />
           <input 
             id={`${field}-phone`}
-            key={`${field}-phone`}
             type="text" 
             placeholder="電話" 
             className="form-input" 
-            value={contact?.phone || ''} 
+            value={contactData?.phone || ''} 
             onChange={e => updateContact(field, 'phone', e.target.value)} 
           />
           <input 
             id={`${field}-mobile`}
-            key={`${field}-mobile`}
             type="text" 
             placeholder="手機" 
             className="form-input" 
-            value={contact?.mobile || ''} 
+            value={contactData?.mobile || ''} 
             onChange={e => updateContact(field, 'mobile', e.target.value)} 
           />
           <input 
             id={`${field}-email`}
-            key={`${field}-email`}
             type="email" 
             placeholder="Email" 
             className="form-input" 
-            value={contact?.email || ''} 
+            value={contactData?.email || ''} 
             onChange={e => updateContact(field, 'email', e.target.value)} 
           />
         </div>
       </div>
     );
-  };
+  }, [updateContact]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -336,10 +330,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
             </div>
 
             {/* 計畫代表人 */}
-            <ContactSection title="計畫代表人" field="representative" icon={UserCircle} />
+            {renderContactSection("計畫代表人", "representative", UserCircle, formData.representative as ContactInfo)}
             
             {/* 計畫聯絡人 */}
-            <ContactSection title="計畫聯絡人" field="liaison" icon={Users} />
+            {renderContactSection("計畫聯絡人", "liaison", Users, formData.liaison as ContactInfo)}
 
             {/* 地址資訊 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -567,10 +561,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
             </div>
 
             {/* 輔導委員 */}
-            <ContactSection title="輔導委員" field="commissioner" icon={UserCircle} />
+            {renderContactSection("輔導委員", "commissioner", UserCircle, formData.commissioner as ContactInfo)}
             
             {/* 主責人員 */}
-            <ContactSection title="主責人員" field="chiefStaff" icon={UserCircle} />
+            {renderContactSection("主責人員", "chiefStaff", UserCircle, formData.chiefStaff as ContactInfo)}
           </div>
         </section>
 

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Project, KeyResult, KRStatus, MonthlyReport, WorkItemReport, ExpenditureDetail, BudgetItem, BudgetCategory, CoachingRecord, FundingSource } from '../types';
-import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2, Link2, ExternalLink, Clock, ChevronDown, Upload, Calendar, Target, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2, Link2, ExternalLink, Clock, ChevronDown, Upload, Calendar, Target, TrendingUp, AlertCircle, CheckCircle2, FileDown } from 'lucide-react';
 
 interface ProjectExecutionControlProps {
   projects: Project[];
@@ -11,6 +11,8 @@ interface ProjectExecutionControlProps {
   allReports?: MonthlyReport[];  // 所有歷史月報，用於計算累計支出
   onBack: () => void;
   onSaveReport: (report: MonthlyReport) => void;
+  userRole?: string;  // 用戶角色，用於控制權限
+  assignedProjectIds?: string[];  // 輔導老師負責的計畫 ID 列表
 }
 
 const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({ 
@@ -20,8 +22,17 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
   initialReport, 
   allReports = [],
   onBack, 
-  onSaveReport 
+  onSaveReport,
+  userRole,
+  assignedProjectIds = []
 }) => {
+  // 權限控制
+  const isAdmin = userRole === 'MOC_ADMIN';
+  const isCoach = userRole === 'COACH';
+  const isOperator = userRole === 'OPERATOR';
+  
+  // 輔導老師只能閱覽負責計畫的月報（不可編輯）
+  const isReadOnly = isCoach;
   const [targetProjectId, setTargetProjectId] = useState(initialReport?.projectId || selectedProjectId || (projects[0]?.id || ''));
   const [reportMonth, setReportMonth] = useState(initialReport?.month || '2026年01月');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -236,6 +247,123 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
     return kr?.targetValue || 0;
   };
 
+  // 匯出 Word 檔案功能
+  const exportToWord = () => {
+    if (!selectedProject || !reportData) return;
+
+    // 建立 Word 文件內容
+    const workItemsHtml = reportData.workItems?.map((item, idx) => {
+      const kr = allKeyResults.find(k => k.id === item.krId);
+      return `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${kr?.description || '未指定'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.executionNote || ''}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.achievedValue || 0}</td>
+        </tr>
+      `;
+    }).join('') || '';
+
+    const expendituresHtml = reportData.expenditures?.map((exp, idx) => {
+      const budgetItem = selectedProject.budgetItems.find(b => b.id === exp.budgetItemId);
+      return `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${budgetItem?.name || '未指定'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${exp.fundingSource === 'SUBSIDY' ? '補助款' : '自籌款'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">$${exp.amount?.toLocaleString() || 0}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${exp.description || ''}</td>
+        </tr>
+      `;
+    }).join('') || '';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>月報表 - ${selectedProject.name} - ${reportData.month}</title>
+        <style>
+          body { font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; padding: 40px; }
+          h1 { text-align: center; color: #1e40af; margin-bottom: 30px; }
+          h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 30px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background-color: #f1f5f9; border: 1px solid #000; padding: 10px; text-align: left; }
+          .info-section { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          .info-row { display: flex; margin-bottom: 10px; }
+          .info-label { font-weight: bold; width: 120px; }
+          .total { font-size: 18px; font-weight: bold; color: #059669; text-align: right; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>文化部原村計畫 月報表</h1>
+        
+        <div class="info-section">
+          <div class="info-row"><span class="info-label">計畫名稱：</span><span>${selectedProject.name}</span></div>
+          <div class="info-row"><span class="info-label">計畫編號：</span><span>${selectedProject.id}</span></div>
+          <div class="info-row"><span class="info-label">報告月份：</span><span>${reportData.month}</span></div>
+          <div class="info-row"><span class="info-label">匯出時間：</span><span>${new Date().toLocaleString('zh-TW')}</span></div>
+        </div>
+
+        <h2>一、工作事項執行情形</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">序號</th>
+              <th>對應關鍵結果 (KR)</th>
+              <th>執行說明</th>
+              <th style="width: 100px;">達成值</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${workItemsHtml || '<tr><td colspan="4" style="border: 1px solid #000; padding: 20px; text-align: center; color: #94a3b8;">尚無工作事項</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2>二、經費支出明細</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">序號</th>
+              <th>預算科目</th>
+              <th style="width: 100px;">經費來源</th>
+              <th style="width: 120px;">支出金額</th>
+              <th>支出說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${expendituresHtml || '<tr><td colspan="5" style="border: 1px solid #000; padding: 20px; text-align: center; color: #94a3b8;">尚無支出項目</td></tr>'}
+          </tbody>
+        </table>
+        <p class="total">本月申報總額：$${currentMonthTotal.toLocaleString()}</p>
+
+        ${reportData.fanpageLinks && reportData.fanpageLinks.length > 0 ? `
+          <h2>三、原村粉絲頁貼文連結</h2>
+          <ul>
+            ${reportData.fanpageLinks.map(link => `<li><a href="${link}">${link}</a></li>`).join('')}
+          </ul>
+        ` : ''}
+
+        ${reportData.summary ? `
+          <h2>四、備註</h2>
+          <p>${reportData.summary}</p>
+        ` : ''}
+      </body>
+      </html>
+    `;
+
+    // 建立 Blob 並下載
+    const blob = new Blob([htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `月報表_${selectedProject.name}_${reportData.month?.replace(/\s/g, '')}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (!selectedProject) return <div className="p-10 text-center text-gray-400 font-bold">計畫載入中...</div>;
 
   return (
@@ -269,6 +397,13 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={exportToWord}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all flex items-center gap-2 text-sm font-bold"
+              title="匯出 Word 檔案"
+            >
+              <FileDown size={20} /> 匯出 Word
+            </button>
             <button onClick={onBack} className="p-3 hover:bg-white/20 rounded-xl transition-all">
               <ArrowLeft size={24} />
             </button>
@@ -350,12 +485,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
           <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-8">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-black text-slate-800">工作事項與支出明細</h2>
-              <button 
-                onClick={addWorkItem}
-                className="px-5 py-2.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl font-bold text-sm hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2"
-              >
-                <Plus size={18} /> 新增工作事項
-              </button>
+              {!isReadOnly && (
+                <button 
+                  onClick={addWorkItem}
+                  className="px-5 py-2.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl font-bold text-sm hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2"
+                >
+                  <Plus size={18} /> 新增工作事項
+                </button>
+              )}
             </div>
 
             {/* 工作事項列表 */}
@@ -364,12 +501,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 const selectedKR = allKeyResults.find(kr => kr.id === item.krId);
                 return (
                   <div key={item.id} className="bg-slate-50 rounded-2xl p-6 space-y-5 border border-slate-100 relative">
-                    <button 
-                      onClick={() => removeWorkItem(item.id)}
-                      className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {!isReadOnly && (
+                      <button 
+                        onClick={() => removeWorkItem(item.id)}
+                        className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
 
                     <div className="grid grid-cols-2 gap-6">
                       {/* 對應工作項目 (預算科目) - 下拉選單連動計畫書 KR */}
@@ -467,12 +606,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 </div>
                 <h2 className="text-xl font-black text-slate-800">預算執行</h2>
               </div>
-              <button 
-                onClick={addExpenditure}
-                className="px-5 py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
-              >
-                <Plus size={18} /> 新增支出項目
-              </button>
+{!isReadOnly && (
+                <button 
+                  onClick={addExpenditure}
+                  className="px-5 py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl font-bold text-sm hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
+                >
+                  <Plus size={18} /> 新增支出項目
+                </button>
+              )}
             </div>
 
             {/* 人事費上限警示 */}
@@ -499,12 +640,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 
                 return (
                   <div key={exp.id} className={`bg-slate-50 rounded-2xl p-6 space-y-5 border ${isOverBudget ? 'border-red-300 bg-red-50/30' : 'border-slate-100'} relative`}>
-                    <button 
-                      onClick={() => removeExpenditure(exp.id)}
-                      className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {!isReadOnly && (
+                      <button 
+                        onClick={() => removeExpenditure(exp.id)}
+                        className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
 
                     <div className="grid grid-cols-3 gap-4">
                       {/* 對應預算科目 - 下拉選單連動計畫書預算 */}
@@ -629,17 +772,19 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 </div>
                 <h2 className="text-xl font-black text-slate-800">原村粉絲頁上傳紀錄</h2>
               </div>
-              <button 
-                onClick={() => {
-                  setReportData(prev => ({
-                    ...prev,
-                    fanpageLinks: [...(prev.fanpageLinks || []), '']
-                  }));
-                }}
-                className="px-5 py-2.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-xl font-bold text-sm hover:bg-purple-600 hover:text-white transition-all flex items-center gap-2"
-              >
-                <Plus size={18} /> 新增貼文連結
-              </button>
+{!isReadOnly && (
+                <button 
+                  onClick={() => {
+                    setReportData(prev => ({
+                      ...prev,
+                      fanpageLinks: [...(prev.fanpageLinks || []), '']
+                    }));
+                  }}
+                  className="px-5 py-2.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-xl font-bold text-sm hover:bg-purple-600 hover:text-white transition-all flex items-center gap-2"
+                >
+                  <Plus size={18} /> 新增貼文連結
+                </button>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -669,15 +814,17 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <ExternalLink size={18} />
                     </a>
                   )}
-                  <button 
-                    onClick={() => {
-                      const newLinks = reportData.fanpageLinks?.filter((_, i) => i !== index) || [];
-                      setReportData(prev => ({ ...prev, fanpageLinks: newLinks }));
-                    }}
-                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+{!isReadOnly && (
+                    <button 
+                      onClick={() => {
+                        const newLinks = reportData.fanpageLinks?.filter((_, i) => i !== index) || [];
+                        setReportData(prev => ({ ...prev, fanpageLinks: newLinks }));
+                      }}
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               ))}
 
@@ -752,30 +899,41 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
         multiple
       />
 
-      {/* 底部提交按鈕 */}
-      <div className="fixed bottom-8 right-8 z-40 flex gap-4">
-        <button 
-          onClick={() => {
-            // 儲存草稿
-            console.log('儲存草稿', reportData);
-          }}
-          className="px-8 py-4 bg-white text-slate-700 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 border border-slate-200"
-        >
-          <Save size={20} /> 儲存草稿
-        </button>
-        <button 
-          onClick={() => {
-            const finalReport: MonthlyReport = {
-              ...reportData as MonthlyReport,
-              submittedAt: new Date().toLocaleString('zh-TW')
-            };
-            onSaveReport(finalReport);
-          }}
-          className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
-        >
-          <CheckCircle2 size={20} /> 提交月報
-        </button>
-      </div>
+      {/* 底部提交按鈕 - 唯讀模式下隱藏 */}
+      {!isReadOnly && (
+        <div className="fixed bottom-8 right-8 z-40 flex gap-4">
+          <button 
+            onClick={() => {
+              // 儲存草稿
+              console.log('儲存草稿', reportData);
+            }}
+            className="px-8 py-4 bg-white text-slate-700 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 border border-slate-200"
+          >
+            <Save size={20} /> 儲存草稿
+          </button>
+          <button 
+            onClick={() => {
+              const finalReport: MonthlyReport = {
+                ...reportData as MonthlyReport,
+                submittedAt: new Date().toLocaleString('zh-TW')
+              };
+              onSaveReport(finalReport);
+            }}
+            className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
+          >
+            <CheckCircle2 size={20} /> 提交月報
+          </button>
+        </div>
+      )}
+
+      {/* 唯讀模式提示 */}
+      {isReadOnly && (
+        <div className="fixed bottom-8 right-8 z-40">
+          <div className="px-6 py-3 bg-amber-100 text-amber-800 rounded-2xl font-bold shadow-lg flex items-center gap-2 border border-amber-200">
+            <Eye size={20} /> 唯讀模式 - 僅供閱覽
+          </div>
+        </div>
+      )}
     </div>
   );
 };

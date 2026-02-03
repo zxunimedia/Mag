@@ -11,7 +11,8 @@ import {
   Calculator,
   CheckCircle,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  FileCheck
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -23,6 +24,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) => {
   const isAdmin = userRole === UserRole.ADMIN;
+  const isCoach = userRole === UserRole.COACH;
 
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板總覽' },
@@ -30,6 +32,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
     { id: 'reports', icon: FileText, label: '2. 月報填報' },
     { id: 'coaching', icon: MessageSquare, label: '3. 輔導紀錄' },
     { id: 'grants', icon: CheckCircle, label: '4. 撥付進度' },
+    // 管理員和輔導老師可以看到輔導委員結案報告產製
+    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導委員結案報告產製' }] : []),
     // 只有管理員可以看到新案提案
     ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
   ];
