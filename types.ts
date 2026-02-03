@@ -28,7 +28,8 @@ export enum FundingSource {
 
 export enum UserRole {
   ADMIN = 'MOC_ADMIN',
-  OPERATOR = 'UNIT_OPERATOR'
+  OPERATOR = 'UNIT_OPERATOR',
+  COACH = 'COACH'  // 輔導老師
 }
 
 export interface User {
@@ -240,4 +241,19 @@ export interface Report {
   title: string;
   content: string;
   images: string[];
+}
+
+// 輔導結案報告
+ export interface CoachingFinalReport {
+  id: string;
+  projectId: string;
+  coachId: string;                    // 輔導老師 ID
+  visitSummaries: {                   // 訪視紀錄摘要列表
+    date: string;                     // 訪視日期
+    keyPoints: string;                // 整體訪視重點
+  }[];
+  comprehensiveOpinion: string;       // 綜合輔導意見
+  allPhotos: string[];                // 所有訪視照片
+  createdAt: string;
+  updatedAt?: string;
 }
