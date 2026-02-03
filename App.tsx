@@ -81,16 +81,64 @@ const MOCK_PROJECTS: Project[] = [
   }
 ];
 
+// localStorage 資料持久化工具函數
+const STORAGE_KEYS = {
+  PROJECTS: 'mag_projects',
+  MONTHLY_REPORTS: 'mag_monthly_reports',
+  COACHING_RECORDS: 'mag_coaching_records'
+};
+
+const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error(`Failed to load ${key} from localStorage:`, e);
+  }
+  return defaultValue;
+};
+
+const saveToStorage = <T,>(key: string, data: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`Failed to save ${key} to localStorage:`, e);
+  }
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
   const [editMode, setEditMode] = useState<'NONE' | 'BASIC' | 'CONTROL'>('NONE');
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
-  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
-  const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>([]);
+  
+  // 從 localStorage 讀取資料，如果沒有則使用預設資料
+  const [projects, setProjects] = useState<Project[]>(() => 
+    loadFromStorage(STORAGE_KEYS.PROJECTS, MOCK_PROJECTS)
+  );
+  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>(() => 
+    loadFromStorage(STORAGE_KEYS.MONTHLY_REPORTS, [])
+  );
+  const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>(() => 
+    loadFromStorage(STORAGE_KEYS.COACHING_RECORDS, [])
+  );
   const [reports] = useState<Report[]>([]);
+
+  // 當資料變更時自動儲存到 localStorage
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.PROJECTS, projects);
+  }, [projects]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.MONTHLY_REPORTS, monthlyReports);
+  }, [monthlyReports]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.COACHING_RECORDS, coachingRecords);
+  }, [coachingRecords]);
 
   if (!currentUser) {
     return <Login onLogin={setCurrentUser} />;
