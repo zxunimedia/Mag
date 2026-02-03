@@ -11,7 +11,8 @@ import {
   DollarSign,
   ClipboardCheck,
   Users,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,14 +23,16 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) => {
   const isAdmin = userRole === 'MOC_ADMIN';
+  const isCoach = userRole === 'COACH';
   
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板總覽' },
     { id: 'projects', icon: FolderKanban, label: '計畫清單' },
     ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
-    { id: 'reports', icon: FileText, label: '月報填報' },
-    { id: 'grants', icon: DollarSign, label: '撥付進度' },
+    ...(!isCoach ? [{ id: 'reports', icon: FileText, label: '月報填報' }] : []),
+    ...(!isCoach ? [{ id: 'grants', icon: DollarSign, label: '撥付進度' }] : []),
     { id: 'coaching', icon: ClipboardCheck, label: '輔導紀錄' },
+    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導結案報告' }] : []),
     ...(isAdmin ? [{ id: 'accounts', icon: Users, label: '帳號管理' }] : []),
   ];
 
