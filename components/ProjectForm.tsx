@@ -210,7 +210,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     });
   };
 
-  // 聯絡人輸入區塊組件
+  // 聯絡人輸入區塊組件 - 使用穩定的 key 和 id 防止焦點跳轉
   const ContactSection = ({ title, field, icon: Icon }: { title: string; field: 'representative' | 'liaison' | 'commissioner' | 'chiefStaff'; icon: any }) => {
     const contact = formData[field] as ContactInfo;
     return (
@@ -220,11 +220,51 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
           {title}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <input type="text" placeholder="姓名" className="form-input" value={contact?.name || ''} onChange={e => updateContact(field, 'name', e.target.value)} />
-          <input type="text" placeholder="職稱" className="form-input" value={contact?.title || ''} onChange={e => updateContact(field, 'title', e.target.value)} />
-          <input type="text" placeholder="電話" className="form-input" value={contact?.phone || ''} onChange={e => updateContact(field, 'phone', e.target.value)} />
-          <input type="text" placeholder="手機" className="form-input" value={contact?.mobile || ''} onChange={e => updateContact(field, 'mobile', e.target.value)} />
-          <input type="email" placeholder="Email" className="form-input" value={contact?.email || ''} onChange={e => updateContact(field, 'email', e.target.value)} />
+          <input 
+            id={`${field}-name`}
+            key={`${field}-name`}
+            type="text" 
+            placeholder="姓名" 
+            className="form-input" 
+            value={contact?.name || ''} 
+            onChange={e => updateContact(field, 'name', e.target.value)} 
+          />
+          <input 
+            id={`${field}-title`}
+            key={`${field}-title`}
+            type="text" 
+            placeholder="職稱" 
+            className="form-input" 
+            value={contact?.title || ''} 
+            onChange={e => updateContact(field, 'title', e.target.value)} 
+          />
+          <input 
+            id={`${field}-phone`}
+            key={`${field}-phone`}
+            type="text" 
+            placeholder="電話" 
+            className="form-input" 
+            value={contact?.phone || ''} 
+            onChange={e => updateContact(field, 'phone', e.target.value)} 
+          />
+          <input 
+            id={`${field}-mobile`}
+            key={`${field}-mobile`}
+            type="text" 
+            placeholder="手機" 
+            className="form-input" 
+            value={contact?.mobile || ''} 
+            onChange={e => updateContact(field, 'mobile', e.target.value)} 
+          />
+          <input 
+            id={`${field}-email`}
+            key={`${field}-email`}
+            type="email" 
+            placeholder="Email" 
+            className="form-input" 
+            value={contact?.email || ''} 
+            onChange={e => updateContact(field, 'email', e.target.value)} 
+          />
         </div>
       </div>
     );
@@ -270,8 +310,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
             {/* 計畫名稱和執行單位 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">計畫名稱 <span className="text-red-500">*</span></label>
+                <label htmlFor="project-name" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">計畫名稱 <span className="text-red-500">*</span></label>
                 <input 
+                  id="project-name"
                   type="text" 
                   className="form-input"
                   placeholder="請輸入計畫名稱..."
@@ -280,8 +321,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">執行單位 <span className="text-red-500">*</span></label>
+                <label htmlFor="executing-unit" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">執行單位 <span className="text-red-500">*</span></label>
                 <input 
+                  id="executing-unit"
                   type="text" 
                   className="form-input"
                   placeholder="請輸入執行單位..."
@@ -300,8 +342,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
             {/* 地址資訊 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">立案地址</label>
+                <label htmlFor="legal-address" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">立案地址</label>
                 <input 
+                  id="legal-address"
                   type="text" 
                   className="form-input"
                   placeholder="請輸入立案地址..."
@@ -310,8 +353,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">聯絡地址</label>
+                <label htmlFor="contact-address" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">聯絡地址</label>
                 <input 
+                  id="contact-address"
                   type="text" 
                   className="form-input"
                   placeholder="請輸入聯絡地址..."
@@ -344,8 +388,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               </div>
               <div className="space-y-3">
                 {formData.sites?.map((site, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
+                  <div key={`site-${idx}`} className="flex items-center gap-3">
                     <input 
+                      id={`site-${idx}`}
                       type="text" 
                       className="form-input flex-1"
                       placeholder={`實施地點 ${idx + 1}`}
@@ -365,10 +410,11 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
             {/* 金額資訊 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 space-y-3">
-                <label className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                <label htmlFor="applied-amount" className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                   <DollarSign size={16} /> 申請金額
                 </label>
                 <input 
+                  id="applied-amount"
                   type="number" 
                   className="w-full bg-white border border-blue-200 rounded-xl px-4 py-3 text-2xl font-black text-blue-600 outline-none focus:ring-4 focus:ring-blue-500/10"
                   value={formData.appliedAmount || 0}
@@ -376,10 +422,11 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 />
               </div>
               <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100 space-y-3">
-                <label className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                <label htmlFor="approved-amount" className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                   <DollarSign size={16} /> 核定金額
                 </label>
                 <input 
+                  id="approved-amount"
                   type="number" 
                   className="w-full bg-white border border-emerald-200 rounded-xl px-4 py-3 text-2xl font-black text-emerald-600 outline-none focus:ring-4 focus:ring-emerald-500/10"
                   value={formData.approvedAmount || 0}
