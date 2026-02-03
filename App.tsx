@@ -7,6 +7,7 @@ import ProjectDetail from './components/ProjectDetail';
 import ProjectForm from './components/ProjectForm';
 import ProjectExecutionControl from './components/ProjectExecutionControl';
 import CoachingRecords from './components/CoachingRecords';
+import CoachingFinalReport from './components/CoachingFinalReport';
 import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
@@ -387,6 +388,7 @@ const App: React.FC = () => {
               )}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
               {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} onDeleteRecord={handleDeleteCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
+              {activeTab === 'finalReport' && <CoachingFinalReport projects={visibleProjects} coachingRecords={coachingRecords} currentUserRole={currentUser.role} />}
               
               {/* 新案提案申請：儲存為新計畫 */}
               {activeTab === 'submission' && isAdmin && (
