@@ -370,13 +370,13 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </div>
                           </td>
                        </tr>
-                       {/* 操作人員意見回應 */}
+                       {/* 受輔導單位意見回應 */}
                        <tr>
-                          <td className="record-header" colSpan={2}>操作人員意見回應</td>
+                          <td className="record-header" colSpan={2}>受輔導單位意見回應</td>
                           <td className="record-cell" colSpan={4}>
                              <textarea 
                                 className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
-                                placeholder="請操作人員填寫對此次輔導紀錄的意見回應..."
+                                placeholder="請受輔導單位填寫對此次輔導紀錄的意見回應..."
                                 value={editingRecord.operatorFeedback || ''}
                                 onChange={e => setEditingRecord({...editingRecord, operatorFeedback: e.target.value})}
                              />
