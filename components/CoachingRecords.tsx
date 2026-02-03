@@ -1,7 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Project, CoachingRecord, UserRole, KRStatus, VisitRow, AssessmentResult } from '../types';
-import { Plus, X, Calendar, Camera, Trash2, MessageSquare, Save, Pencil, Upload, FileCheck, Info, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Plus, X, Calendar, Camera, Trash2, MessageSquare, Save, Pencil, Upload, FileCheck, Info, ChevronRight, AlertTriangle, Download } from 'lucide-react';
+import { exportCoachingRecords } from '../utils/exportUtils';
 
 interface CoachingRecordsProps {
   projects: Project[];
@@ -24,6 +25,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = currentUserRole === UserRole.ADMIN;
+  const isCoach = currentUserRole === UserRole.COACH;
   const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
@@ -31,7 +33,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const initVisitRow = (id: string, workItem: string = ''): VisitRow => ({ id, workItem, opinion: '', status: KRStatus.ON_TRACK, strategy: '' });
 
   const handleOpenNew = () => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isCoach) return;
     // 使用計畫編號生成序號，格式：計畫編號-流水號
     const projectCode = selectedProject?.projectCode || selectedProjectId;
     const serial = `${projectCode}-${(filteredRecords.length + 1).toString().padStart(3, '0')}`;
@@ -108,7 +110,13 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
               >
                 {visibleProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              {isAdmin && (
+              <button 
+                onClick={() => exportCoachingRecords(coachingRecords, projects)}
+                className="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all flex items-center gap-2"
+              >
+                <Download size={20} /> 匯出 CSV
+              </button>
+              {(isAdmin || isCoach) && (
                 <button onClick={handleOpenNew} className="px-8 py-3 bg-[#2D3E50] text-white rounded-2xl font-black shadow-lg hover:bg-slate-700 transition-all flex items-center gap-2">
                   <Plus size={20} /> 新增紀錄表
                 </button>
@@ -228,7 +236,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </div>
                           </td>
                        </tr>
-                       {/* 1. 個別工作項目訪視內容 (原訪視內容) */}
+                       {/* 1. 個別工作項目訪視內容 (原訪視內容) - 輔導老師不需填寫 */}
+                       {!isCoach && (
                        <tr>
                           <td className="record-header">個別工作項目<br/>訪視內容</td>
                           <td colSpan={5} className="record-cell p-0">
@@ -278,6 +287,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </table>
                           </td>
                        </tr>
+                       )}
                        {/* 2. 整體訪視重點 (原訪視重點) */}
                        <tr>
                           <td className="record-header">整體訪視重點</td>
@@ -290,7 +300,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              />
                           </td>
                        </tr>
-                       {/* 3. 整體訪視結果 */}
+                       {/* 3. 整體訪視結果 - 輔導老師不需填寫 */}
+                       {!isCoach && (
                        <tr>
                           <td className="record-header">整體訪視結果</td>
                           <td colSpan={5} className="record-cell p-0">
@@ -304,6 +315,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </table>
                           </td>
                        </tr>
+                       )}
                        {/* 訪視照片 */}
                        <tr>
                           <td className="record-header">訪視照片</td>
