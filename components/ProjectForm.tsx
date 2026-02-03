@@ -367,6 +367,67 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               </div>
             </div>
 
+            {/* 提案類別 */}
+            <div className="space-y-4">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 flex items-center gap-2">
+                <Layers size={16} className="text-purple-500" /> 提案類別：請擇一打勾 <span className="text-red-500">*</span>
+              </label>
+              <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 space-y-4">
+                {/* 原鄉文化行動計畫類 */}
+                <div className="space-y-2">
+                  <p className="text-sm font-black text-slate-700">■ 1. 原鄉文化行動計畫類：</p>
+                  <div className="flex items-center gap-6 pl-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="category"
+                        checked={formData.category === '原鄉文化行動-無涉產業及就業'} 
+                        onChange={() => setFormData({ ...formData, category: '原鄉文化行動-無涉產業及就業' })} 
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="text-sm font-bold text-slate-600">□ (1) 無涉產業及就業</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="category"
+                        checked={formData.category === '原鄉文化行動-涉及產業及就業'} 
+                        onChange={() => setFormData({ ...formData, category: '原鄉文化行動-涉及產業及就業' })} 
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="text-sm font-bold text-slate-600">□ (2) 涉及產業及就業</span>
+                    </label>
+                  </div>
+                </div>
+                {/* 都市文化行動計畫類 */}
+                <div className="space-y-2">
+                  <p className="text-sm font-black text-slate-700">□ 2. 都市文化行動計畫類：</p>
+                  <div className="flex items-center gap-6 pl-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="category"
+                        checked={formData.category === '都市文化行動-無涉產業及就業'} 
+                        onChange={() => setFormData({ ...formData, category: '都市文化行動-無涉產業及就業' })} 
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="text-sm font-bold text-slate-600">□ (1) 無涉產業及就業</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="category"
+                        checked={formData.category === '都市文化行動-涉及產業及就業'} 
+                        onChange={() => setFormData({ ...formData, category: '都市文化行動-涉及產業及就業' })} 
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="text-sm font-bold text-slate-600">□ (2) 涉及產業及就業</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* 實施地點 */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -380,11 +441,11 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-sm font-bold text-slate-600">類型：</label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉', category: '原鄉文化行動', sites: [''] })} />
+                  <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉', sites: [''] })} />
                   <span className="text-sm font-bold">原鄉</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市', category: '都市文化行動', sites: [''] })} />
+                  <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市', sites: [''] })} />
                   <span className="text-sm font-bold">都市</span>
                 </label>
               </div>
