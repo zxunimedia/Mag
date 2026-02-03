@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, GrantStage, GrantDocStatus, BudgetItem, BudgetCategory, Vision } from '../types';
-import { Plus, Trash2, Save, ArrowLeft, PlusCircle, MinusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users, Layers } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, PlusCircle, MinusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users, Layers, ChevronDown } from 'lucide-react';
+import { ALL_INDIGENOUS_TOWNSHIPS, TAIWAN_CITIES, getDistrictsByCity } from '../data/taiwanLocations';
 
 interface ProjectFormProps {
   project?: Project;
@@ -18,6 +19,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     id: `P${Date.now()}`,
     year: '115',
     status: ProjectStatus.PLANNING,
+    category: '原鄉文化行動',  // 預設計畫類別
     representative: emptyContact(),
     liaison: emptyContact(),
     chiefStaff: emptyContact(),
@@ -378,33 +380,101 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-sm font-bold text-slate-600">類型：</label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉' })} />
+                  <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉', category: '原鄉文化行動', sites: [''] })} />
                   <span className="text-sm font-bold">原鄉</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市' })} />
+                  <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市', category: '都市文化行動', sites: [''] })} />
                   <span className="text-sm font-bold">都市</span>
                 </label>
               </div>
-              <div className="space-y-3">
-                {formData.sites?.map((site, idx) => (
-                  <div key={`site-${idx}`} className="flex items-center gap-3">
-                    <input 
-                      id={`site-${idx}`}
-                      type="text" 
-                      className="form-input flex-1"
-                      placeholder={`實施地點 ${idx + 1}`}
-                      value={site}
-                      onChange={e => updateSite(idx, e.target.value)}
-                    />
-                    {(formData.sites?.length || 0) > 1 && (
-                      <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500">
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              
+              {/* 原鄉：顯示原住民鄉鎮下拉選單 */}
+              {formData.siteType === '原鄉' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 font-medium">{ALL_INDIGENOUS_TOWNSHIPS.length}個原住民鄉鎮市區</p>
+                  {formData.sites?.map((site, idx) => (
+                    <div key={`site-${idx}`} className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <select
+                          id={`site-${idx}`}
+                          className="form-input w-full appearance-none pr-10"
+                          value={site}
+                          onChange={e => updateSite(idx, e.target.value)}
+                        >
+                          <option value="">請選擇原住民鄉鎮...</option>
+                          {ALL_INDIGENOUS_TOWNSHIPS.map(township => (
+                            <option key={township} value={township}>{township}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                      {(formData.sites?.length || 0) > 1 && (
+                        <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500">
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* 都市：顯示縣市+鄉鎮市區兩層下拉選單 */}
+              {formData.siteType === '都市' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 font-medium">請選擇縣市與鄉鎮市區</p>
+                  {formData.sites?.map((site, idx) => {
+                    // 解析已選擇的縣市和鄉鎮
+                    const parts = site.split(/(?<=市|縣)/);
+                    const selectedCity = parts[0] || '';
+                    const selectedDistrict = parts[1] || '';
+                    const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
+                    
+                    return (
+                      <div key={`site-${idx}`} className="flex items-center gap-3">
+                        <div className="relative flex-1">
+                          <select
+                            className="form-input w-full appearance-none pr-10"
+                            value={selectedCity}
+                            onChange={e => {
+                              const newCity = e.target.value;
+                              updateSite(idx, newCity);
+                            }}
+                          >
+                            <option value="">請選擇縣市...</option>
+                            {TAIWAN_CITIES.map(city => (
+                              <option key={city} value={city}>{city}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                        <div className="relative flex-1">
+                          <select
+                            className="form-input w-full appearance-none pr-10"
+                            value={selectedDistrict}
+                            onChange={e => {
+                              const newDistrict = e.target.value;
+                              updateSite(idx, selectedCity + newDistrict);
+                            }}
+                            disabled={!selectedCity}
+                          >
+                            <option value="">請選擇鄉鎮市區...</option>
+                            {districts.map(district => (
+                              <option key={district} value={district}>{district}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                        {(formData.sites?.length || 0) > 1 && (
+                          <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* 金額資訊 */}
