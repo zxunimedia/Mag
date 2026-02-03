@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
     ...(!isCoach ? [{ id: 'reports', icon: FileText, label: '月報填報' }] : []),
     ...(!isCoach ? [{ id: 'grants', icon: DollarSign, label: '撥付進度' }] : []),
     { id: 'coaching', icon: ClipboardCheck, label: '輔導紀錄' },
-    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導結案報告' }] : []),
+    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導委員結案報告產製' }] : []),
     ...(isAdmin ? [{ id: 'accounts', icon: Users, label: '帳號管理' }] : []),
   ];
 
