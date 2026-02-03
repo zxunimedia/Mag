@@ -228,35 +228,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </div>
                           </td>
                        </tr>
-                       {/* 整體訪視結果 */}
+                       {/* 1. 個別工作項目訪視內容 (原訪視內容) */}
                        <tr>
-                          <td className="record-header">整體訪視結果</td>
-                          <td colSpan={5} className="record-cell p-0">
-                             <table className="w-full border-collapse">
-                                <tbody className="divide-y border-slate-200">
-                                   <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} />
-                                   <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} />
-                                   <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} />
-                                   <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} />
-                                </tbody>
-                             </table>
-                          </td>
-                       </tr>
-                       {/* 訪視重點 - 新增欄位 */}
-                       <tr>
-                          <td className="record-header">訪視重點</td>
-                          <td colSpan={5} className="record-cell">
-                             <textarea 
-                               className="record-input min-h-[100px]" 
-                               value={editingRecord.keyPoints || ''} 
-                               onChange={e => setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
-                               placeholder="請輸入本次訪視的重點事項..."
-                             />
-                          </td>
-                       </tr>
-                       {/* 訪視內容 */}
-                       <tr>
-                          <td className="record-header">訪視內容</td>
+                          <td className="record-header">個別工作項目<br/>訪視內容</td>
                           <td colSpan={5} className="record-cell p-0">
                              <table className="w-full border-collapse text-center">
                                 <thead>
@@ -300,6 +274,32 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                          <StatusPicker row={editingRecord.communityConnection!} onChange={(f, v) => setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, [f]: v}})} />
                                       </td>
                                    </tr>
+                                </tbody>
+                             </table>
+                          </td>
+                       </tr>
+                       {/* 2. 整體訪視重點 (原訪視重點) */}
+                       <tr>
+                          <td className="record-header">整體訪視重點</td>
+                          <td colSpan={5} className="record-cell">
+                             <textarea 
+                               className="record-input min-h-[100px]" 
+                               value={editingRecord.keyPoints || ''} 
+                               onChange={e => setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
+                               placeholder="請輸入本次訪視的重點事項..."
+                             />
+                          </td>
+                       </tr>
+                       {/* 3. 整體訪視結果 */}
+                       <tr>
+                          <td className="record-header">整體訪視結果</td>
+                          <td colSpan={5} className="record-cell p-0">
+                             <table className="w-full border-collapse">
+                                <tbody className="divide-y border-slate-200">
+                                   <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} />
+                                   <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} />
+                                   <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} />
+                                   <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} />
                                 </tbody>
                              </table>
                           </td>

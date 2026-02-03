@@ -334,16 +334,22 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                                   )}
                                 </div>
                                 
-                                {/* 狀態選擇 */}
-                                <select 
-                                 className={`border rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all cursor-pointer ${getStatusColor(doc.status)}`}
-                                 value={doc.status}
-                                 onChange={(e) => handleUpdateDocStatus(sIdx, dIdx, e.target.value as GrantDocStatus)}
-                                >
-                                  {DOC_STATUS_OPTIONS.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
+                                {/* 狀態顯示/選擇 */}
+                                {isAdmin ? (
+                                  <select 
+                                   className={`border rounded-xl px-4 py-2.5 text-sm font-black outline-none focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all cursor-pointer ${getStatusColor(doc.status)}`}
+                                   value={doc.status}
+                                   onChange={(e) => handleUpdateDocStatus(sIdx, dIdx, e.target.value as GrantDocStatus)}
+                                  >
+                                    {DOC_STATUS_OPTIONS.map(opt => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className={`border rounded-xl px-4 py-2.5 text-sm font-black ${getStatusColor(doc.status)}`}>
+                                    {doc.status}
+                                  </span>
+                                )}
                                 
                                 {needsRemark && (
                                   <button
