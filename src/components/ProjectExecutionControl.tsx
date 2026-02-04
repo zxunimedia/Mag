@@ -42,6 +42,9 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
   const [previewFileType, setPreviewFileType] = useState<'image' | 'pdf' | 'word' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [viewingHistoryReport, setViewingHistoryReport] = useState<MonthlyReport | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedCompareReports, setSelectedCompareReports] = useState<string[]>([]);
   
   const selectedProject = projects.find(p => p.id === targetProjectId);
   const pendingCoachingRecords = coachingRecords.filter(r => r.projectId === targetProjectId && !r.operatorFeedback);
@@ -298,6 +301,123 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
   const getKRTargetValue = (krId: string) => {
     const kr = allKeyResults.find(k => k.id === krId);
     return kr?.targetValue || 0;
+  };
+
+  // 匯出單一歷史月報為 Word
+  const exportSingleReportToWord = (report: MonthlyReport) => {
+    if (!selectedProject || !report) return;
+
+    const workItemsHtml = report.workItems?.map((item, idx) => {
+      const kr = allKeyResults.find(k => k.id === item.krId);
+      return `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${kr?.description || '未指定'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.executionNote || item.description || ''}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${item.achievedValue || 0}</td>
+        </tr>
+      `;
+    }).join('') || '';
+
+    const expendituresHtml = report.expenditures?.map((exp, idx) => {
+      const budgetItem = selectedProject.budgetItems.find(b => b.id === exp.budgetItemId);
+      return `
+        <tr>
+          <td style="border: 1px solid #000; padding: 8px;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${budgetItem?.name || exp.item || '未指定'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${exp.fundingSource === 'SUBSIDY' ? '補助款' : '自籌款'}</td>
+          <td style="border: 1px solid #000; padding: 8px;">$${exp.amount?.toLocaleString() || 0}</td>
+          <td style="border: 1px solid #000; padding: 8px;">${exp.description || ''}</td>
+        </tr>
+      `;
+    }).join('') || '';
+
+    const totalAmount = report.expenditures?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>月報表 - ${selectedProject.name} - ${report.month}</title>
+        <style>
+          body { font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; padding: 40px; }
+          h1 { text-align: center; color: #1e40af; margin-bottom: 30px; }
+          h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 30px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background-color: #f1f5f9; border: 1px solid #000; padding: 10px; text-align: left; }
+          .info-section { background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          .info-row { display: flex; margin-bottom: 10px; }
+          .info-label { font-weight: bold; width: 120px; }
+          .total { font-size: 18px; font-weight: bold; color: #059669; text-align: right; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1>文化部原村計畫 月報表</h1>
+        
+        <div class="info-section">
+          <div class="info-row"><span class="info-label">計畫名稱：</span><span>${selectedProject.name}</span></div>
+          <div class="info-row"><span class="info-label">計畫編號：</span><span>${selectedProject.id}</span></div>
+          <div class="info-row"><span class="info-label">報告月份：</span><span>${report.month}</span></div>
+          <div class="info-row"><span class="info-label">提交時間：</span><span>${report.submittedAt || '-'}</span></div>
+        </div>
+
+        <h2>一、工作事項執行情形</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">序號</th>
+              <th>對應關鍵結果 (KR)</th>
+              <th>執行說明</th>
+              <th style="width: 100px;">達成值</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${workItemsHtml || '<tr><td colspan="4" style="border: 1px solid #000; padding: 20px; text-align: center; color: #94a3b8;">尚無工作事項</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2>二、經費支出明細</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">序號</th>
+              <th>預算科目</th>
+              <th style="width: 100px;">經費來源</th>
+              <th style="width: 120px;">支出金額</th>
+              <th>支出說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${expendituresHtml || '<tr><td colspan="5" style="border: 1px solid #000; padding: 20px; text-align: center; color: #94a3b8;">尚無支出項目</td></tr>'}
+          </tbody>
+        </table>
+        <p class="total">本月申報總額：$${totalAmount.toLocaleString()}</p>
+
+        ${report.fanpageLinks && report.fanpageLinks.length > 0 ? `
+          <h2>三、原村粉絲頁貼文連結</h2>
+          <ul>
+            ${report.fanpageLinks.map(link => `<li><a href="${link}">${link}</a></li>`).join('')}
+          </ul>
+        ` : ''}
+
+        ${report.summary ? `
+          <h2>四、成果說明</h2>
+          <p>${report.summary}</p>
+        ` : ''}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `月報表_${selectedProject.name}_${report.month?.replace(/\s/g, '')}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // 匯出 Word 檔案功能
@@ -895,46 +1015,95 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
         </>
       )}
 
-      {activeTab === 'history' && (
+      {activeTab === 'history' && !viewingHistoryReport && (
         <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-slate-100 rounded-xl text-slate-600">
-              <Clock size={20} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-100 rounded-xl text-slate-600">
+                <Clock size={20} />
+              </div>
+              <h2 className="text-xl font-black text-slate-800">提交歷史紀錄</h2>
             </div>
-            <h2 className="text-xl font-black text-slate-800">提交歷史紀錄</h2>
+            <div className="flex gap-3">
+              {selectedCompareReports.length >= 2 && (
+                <button
+                  onClick={() => setCompareMode(true)}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-xl font-bold text-sm hover:bg-purple-600 transition-all flex items-center gap-2"
+                >
+                  <BarChart3 size={16} /> 比較已選 ({selectedCompareReports.length})
+                </button>
+              )}
+              {selectedCompareReports.length > 0 && (
+                <button
+                  onClick={() => setSelectedCompareReports([])}
+                  className="px-4 py-2 bg-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-300 transition-all"
+                >
+                  清除選擇
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4 text-left rounded-l-xl">日份</th>
+                  <th className="px-4 py-4 text-center rounded-l-xl w-12">選擇</th>
+                  <th className="px-6 py-4 text-left">日份</th>
                   <th className="px-6 py-4 text-left">專案名稱</th>
                   <th className="px-6 py-4 text-left">申報金額</th>
                   <th className="px-6 py-4 text-left">提交時間</th>
-                  <th className="px-6 py-4 text-center rounded-r-xl">狀態</th>
+                  <th className="px-6 py-4 text-center rounded-r-xl">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {allReports.filter(r => r.projectId === targetProjectId && r.submittedAt && !r.isDraft).length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                       尚無歷史紀錄
                     </td>
                   </tr>
                 ) : (
                   allReports.filter(r => r.projectId === targetProjectId && r.submittedAt && !r.isDraft).map(report => {
                     const total = report.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0;
+                    const isSelected = selectedCompareReports.includes(report.id!);
                     return (
-                      <tr key={report.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={report.id} className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-purple-50' : ''}`}>
+                        <td className="px-4 py-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSelected) {
+                                setSelectedCompareReports(prev => prev.filter(id => id !== report.id));
+                              } else {
+                                setSelectedCompareReports(prev => [...prev, report.id!]);
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 font-bold text-slate-800">{report.month}</td>
                         <td className="px-6 py-4 text-slate-600">{selectedProject?.name}</td>
                         <td className="px-6 py-4 font-bold text-emerald-600">${total.toLocaleString()}</td>
                         <td className="px-6 py-4 text-slate-500">{report.submittedAt || '-'}</td>
                         <td className="px-6 py-4 text-center">
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                            已提交
-                          </span>
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => setViewingHistoryReport(report)}
+                              className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                              title="查看詳情"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            <button
+                              onClick={() => exportSingleReportToWord(report)}
+                              className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                              title="匯出 Word"
+                            >
+                              <FileDown size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -942,6 +1111,186 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 )}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
+
+      {/* 查看歷史月報詳情 */}
+      {activeTab === 'history' && viewingHistoryReport && !compareMode && (
+        <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setViewingHistoryReport(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <h2 className="text-xl font-black text-slate-800">{viewingHistoryReport.month} 月報詳情</h2>
+                <p className="text-sm text-slate-500">提交時間：{viewingHistoryReport.submittedAt}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => exportSingleReportToWord(viewingHistoryReport)}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all flex items-center gap-2"
+            >
+              <FileDown size={16} /> 匯出 Word
+            </button>
+          </div>
+
+          {/* 成果說明 */}
+          <div className="bg-slate-50 rounded-2xl p-6">
+            <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <FileText size={18} className="text-blue-500" /> 成果說明
+            </h3>
+            <p className="text-slate-600 whitespace-pre-wrap">{viewingHistoryReport.summary || '無'}</p>
+          </div>
+
+          {/* 工作事項 */}
+          <div className="bg-slate-50 rounded-2xl p-6">
+            <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <Target size={18} className="text-amber-500" /> 工作事項
+            </h3>
+            <div className="space-y-4">
+              {viewingHistoryReport.workItems?.map((item, idx) => {
+                const kr = allKeyResults.find(k => k.id === item.krId);
+                return (
+                  <div key={item.id} className="bg-white rounded-xl p-4 border border-slate-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-bold text-slate-800">{kr?.description || `工作項目 ${idx + 1}`}</span>
+                      <span className="text-sm font-bold text-blue-600">達成 {item.achievedValue}%</span>
+                    </div>
+                    <p className="text-sm text-slate-600">{item.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 支出明細 */}
+          <div className="bg-slate-50 rounded-2xl p-6">
+            <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <DollarSign size={18} className="text-emerald-500" /> 支出明細
+            </h3>
+            <table className="w-full">
+              <thead className="text-xs text-slate-500 uppercase">
+                <tr>
+                  <th className="text-left py-2">項目</th>
+                  <th className="text-left py-2">說明</th>
+                  <th className="text-right py-2">金額</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {viewingHistoryReport.expenditures?.map(exp => (
+                  <tr key={exp.id}>
+                    <td className="py-3 font-bold text-slate-700">{exp.item}</td>
+                    <td className="py-3 text-slate-600">{exp.description}</td>
+                    <td className="py-3 text-right font-bold text-emerald-600">${exp.amount.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-slate-300">
+                <tr>
+                  <td colSpan={2} className="py-3 font-black text-slate-800">總計</td>
+                  <td className="py-3 text-right font-black text-emerald-600 text-lg">
+                    ${(viewingHistoryReport.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0).toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* 比較模式 */}
+      {activeTab === 'history' && compareMode && (
+        <section className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setCompareMode(false); setSelectedCompareReports([]); }}
+                className="p-2 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div>
+                <h2 className="text-xl font-black text-slate-800">月報比較分析</h2>
+                <p className="text-sm text-slate-500">比較 {selectedCompareReports.length} 份月報的執行情況</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 比較表格 */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                <tr>
+                  <th className="px-4 py-3 text-left">比較項目</th>
+                  {selectedCompareReports.map(id => {
+                    const report = allReports.find(r => r.id === id);
+                    return <th key={id} className="px-4 py-3 text-center">{report?.month}</th>;
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr>
+                  <td className="px-4 py-4 font-bold text-slate-700">申報金額</td>
+                  {selectedCompareReports.map(id => {
+                    const report = allReports.find(r => r.id === id);
+                    const total = report?.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0;
+                    return <td key={id} className="px-4 py-4 text-center font-bold text-emerald-600">${total.toLocaleString()}</td>;
+                  })}
+                </tr>
+                <tr>
+                  <td className="px-4 py-4 font-bold text-slate-700">工作項目數</td>
+                  {selectedCompareReports.map(id => {
+                    const report = allReports.find(r => r.id === id);
+                    return <td key={id} className="px-4 py-4 text-center font-bold text-blue-600">{report?.workItems?.length || 0}</td>;
+                  })}
+                </tr>
+                <tr>
+                  <td className="px-4 py-4 font-bold text-slate-700">支出項目數</td>
+                  {selectedCompareReports.map(id => {
+                    const report = allReports.find(r => r.id === id);
+                    return <td key={id} className="px-4 py-4 text-center font-bold text-amber-600">{report?.expenditures?.length || 0}</td>;
+                  })}
+                </tr>
+                <tr>
+                  <td className="px-4 py-4 font-bold text-slate-700">提交時間</td>
+                  {selectedCompareReports.map(id => {
+                    const report = allReports.find(r => r.id === id);
+                    return <td key={id} className="px-4 py-4 text-center text-slate-500 text-sm">{report?.submittedAt}</td>;
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 支出趨勢圖 */}
+          <div className="bg-slate-50 rounded-2xl p-6">
+            <h3 className="font-bold text-slate-700 mb-4">支出趨勢</h3>
+            <div className="flex items-end gap-4 h-48">
+              {selectedCompareReports.map(id => {
+                const report = allReports.find(r => r.id === id);
+                const total = report?.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0;
+                const maxTotal = Math.max(...selectedCompareReports.map(rid => {
+                  const r = allReports.find(rep => rep.id === rid);
+                  return r?.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0;
+                }));
+                const height = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+                return (
+                  <div key={id} className="flex-1 flex flex-col items-center">
+                    <div 
+                      className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg transition-all duration-500"
+                      style={{ height: `${height}%`, minHeight: '20px' }}
+                    />
+                    <p className="mt-2 text-xs font-bold text-slate-600">{report?.month}</p>
+                    <p className="text-xs text-emerald-600">${total.toLocaleString()}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       )}
