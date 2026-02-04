@@ -15,8 +15,8 @@ interface CoachingRecordsProps {
 
 const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, onDeleteRecord, currentUserRole, currentUserUnitId }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  // 操作人員只能看到自己單位的計畫
-  const visibleProjects = currentUserRole === UserRole.ADMIN 
+  // 管理員和輔導老師可以看到所有計畫，操作人員只能看到自己單位的計畫
+  const visibleProjects = (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.COACH)
     ? projects 
     : projects.filter(p => p.unitId === currentUserUnitId);
   const [selectedProjectId, setSelectedProjectId] = useState(visibleProjects[0]?.id || '');
