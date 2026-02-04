@@ -449,6 +449,7 @@ const App: React.FC = () => {
               coachingRecords={coachingRecords}
               selectedProjectId={selectedProject?.id} 
               initialReport={selectedReport}
+              allReports={monthlyReports}  /* 傳遞所有月報給歷史紀錄功能 */
               onBack={() => { setEditMode('NONE'); setSelectedReport(null); }} 
               onSaveReport={handleSaveMonthlyReport}
               userRole={currentUser.role}
