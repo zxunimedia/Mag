@@ -985,14 +985,16 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                   </div>
                   <input 
                     type="url"
-                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-purple-500/20"
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-purple-500/20 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     placeholder="請貼上原村粉絲頁貼文連結 (https://www.facebook.com/...)"
                     value={link}
                     onChange={(e) => {
+                      if (isReadOnly) return;
                       const newLinks = [...(reportData.fanpageLinks || [])];
                       newLinks[index] = e.target.value;
                       setReportData(prev => ({ ...prev, fanpageLinks: newLinks }));
                     }}
+                    disabled={isReadOnly}
                   />
                   {link && (
                     <a 

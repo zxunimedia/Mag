@@ -27,8 +27,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isCoach = currentUserRole === UserRole.COACH;
   const isOperator = currentUserRole === UserRole.OPERATOR;
-  // 管理員和輔導老師都可以編輯訪視紀錄表，操作人員只能閱覽
-  const canEditForm = isAdmin || isCoach;
+  // canEditForm 會在 editingRecord 變化時重新計算
+  // 管理員和輔導老師只能編輯自己填寫的紀錄，操作人員只能編輯「受輔導團隊意見回應」
   const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
@@ -77,9 +77,26 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   };
 
   const handleOpenEdit = (record: CoachingRecord) => {
-    // 允許所有人編輯輔導紀錄
+    // 允許所有人查看輔導紀錄
     setEditingRecord({...record});
     setShowModal(true);
+  };
+
+  // 判斷當前用戶是否可以編輯這筆紀錄
+  // 管理員可以編輯自己填寫的紀錄，輔導老師可以編輯自己填寫的紀錄
+  // 但不能編輯別人填寫的紀錄（只能查看）
+  const canEditRecord = (record: CoachingRecord) => {
+    // 操作人員只能編輯「受輔導團隊意見回應」，不能編輯其他欄位
+    if (isOperator) return false;
+    // 管理員和輔導老師只能編輯自己填寫的紀錄
+    // 如果紀錄沒有 writer 欄位，則允許編輯（向下相容）
+    if (!record.writer) return true;
+    // 檢查填寫人是否是當前用戶的角色
+    // 管理員填寫的紀錄只有管理員可以編輯，輔導老師填寫的紀錄只有輔導老師可以編輯
+    const writerLower = record.writer.toLowerCase();
+    if (isAdmin && (writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@'))) return true;
+    if (isCoach && (writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@'))) return true;
+    return false;
   };
 
   const updateVisitContent = (id: string, field: keyof VisitRow, value: any) => {
@@ -168,7 +185,28 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       </div>
 
       {/* 復刻截圖的表格編輯 Modal */}
-      {showModal && editingRecord && (
+      {showModal && editingRecord && (() => {
+        // 動態計算當前紀錄是否可編輯
+        const canEditForm = (() => {
+          // 操作人員只能編輯「受輔導團隊意見回應」，不能編輯其他欄位
+          if (isOperator) return false;
+          // 新增紀錄時（沒有 id 或 id 是新的），允許編輯
+          if (!editingRecord.id || editingRecord.id.startsWith('cr-')) {
+            // 檢查是否是新建的紀錄（尚未儲存）
+            const existingRecord = coachingRecords.find(r => r.id === editingRecord.id);
+            if (!existingRecord) return true;
+          }
+          // 管理員和輔導老師只能編輯自己填寫的紀錄
+          // 如果紀錄沒有 writer 欄位，則允許編輯（向下相容）
+          if (!editingRecord.writer) return true;
+          // 檢查填寫人是否是當前用戶的角色
+          const writerLower = editingRecord.writer.toLowerCase();
+          if (isAdmin && (writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@'))) return true;
+          if (isCoach && (writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@'))) return true;
+          return false;
+        })();
+        
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-5xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             <div className="px-10 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -428,7 +466,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <style>{`
         .record-header {
