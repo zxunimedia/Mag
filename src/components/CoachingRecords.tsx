@@ -26,6 +26,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isCoach = currentUserRole === UserRole.COACH;
+  const isOperator = currentUserRole === UserRole.OPERATOR;
+  // 操作人員只能閱覽，不能編輯（只有回應區域可編輯）
+  const canEditForm = isAdmin || isCoach;
   const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
@@ -187,10 +190,10 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                        <tr>
                           <td className="record-header">輔導地點</td>
                           <td className="record-cell">
-                             <input type="text" className="record-input" value={editingRecord.location} onChange={e => setEditingRecord({...editingRecord, location: e.target.value})} placeholder="請填寫地點..." />
+                             <input type="text" className="record-input" value={editingRecord.location} onChange={e => canEditForm && setEditingRecord({...editingRecord, location: e.target.value})} placeholder="請填寫地點..." disabled={!canEditForm} />
                           </td>
                           <td className="record-header">輔導次數</td>
-                          <td colSpan={3} className="record-cell">第 <input type="text" className="inline-input w-12" value={editingRecord.frequency} onChange={e => setEditingRecord({...editingRecord, frequency: e.target.value})} /> 次</td>
+                          <td colSpan={3} className="record-cell">第 <input type="text" className="inline-input w-12" value={editingRecord.frequency} onChange={e => canEditForm && setEditingRecord({...editingRecord, frequency: e.target.value})} disabled={!canEditForm} /> 次</td>
                        </tr>
                        {/* 輔導方式 & 填寫人 */}
                        <tr>
@@ -199,40 +202,40 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              <div className="flex gap-4">
                                 {['實地訪視', '視訊', '電話', '其他'].map(m => (
                                    <label key={m} className="flex items-center gap-1 cursor-pointer">
-                                      <input type="radio" checked={editingRecord.method === m} onChange={() => setEditingRecord({...editingRecord, method: m as any})} /> {m}
+                                      <input type="radio" checked={editingRecord.method === m} onChange={() => canEditForm && setEditingRecord({...editingRecord, method: m as any})} disabled={!canEditForm} /> {m}
                                    </label>
                                 ))}
                              </div>
                           </td>
                           <td className="record-header">填寫人</td>
                           <td colSpan={3} className="record-cell">
-                             <input type="text" className="record-input" value={editingRecord.writer} onChange={e => setEditingRecord({...editingRecord, writer: e.target.value})} />
+                             <input type="text" className="record-input" value={editingRecord.writer} onChange={e => canEditForm && setEditingRecord({...editingRecord, writer: e.target.value})} disabled={!canEditForm} />
                           </td>
                        </tr>
                        {/* 輔導日期 & 輔導時間 */}
                        <tr>
                           <td className="record-header">輔導日期</td>
                           <td className="record-cell">
-                             <input type="date" className="record-input" value={editingRecord.date} onChange={e => setEditingRecord({...editingRecord, date: e.target.value})} />
+                             <input type="date" className="record-input" value={editingRecord.date} onChange={e => canEditForm && setEditingRecord({...editingRecord, date: e.target.value})} disabled={!canEditForm} />
                           </td>
                           <td className="record-header">輔導時間</td>
                           <td colSpan={3} className="record-cell">
-                             <input type="time" className="inline-input" value={editingRecord.startTime} onChange={e => setEditingRecord({...editingRecord, startTime: e.target.value})} /> 
+                             <input type="time" className="inline-input" value={editingRecord.startTime} onChange={e => canEditForm && setEditingRecord({...editingRecord, startTime: e.target.value})} disabled={!canEditForm} /> 
                              至 
-                             <input type="time" className="inline-input" value={editingRecord.endTime} onChange={e => setEditingRecord({...editingRecord, endTime: e.target.value})} />
+                             <input type="time" className="inline-input" value={editingRecord.endTime} onChange={e => canEditForm && setEditingRecord({...editingRecord, endTime: e.target.value})} disabled={!canEditForm} />
                           </td>
                        </tr>
                        {/* 出席人員 */}
                        <tr>
                           <td className="record-header">出席人員</td>
                           <td colSpan={5} className="record-cell space-y-2">
-                             <AttendeeRow label="輔導委員" name={selectedProject?.commissioner.name} checked={editingRecord.attendees?.commissioners} onChange={() => setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, commissioners: !editingRecord.attendees?.commissioners}})} />
-                             <AttendeeRow label="主責人員" name={selectedProject?.chiefStaff.name} checked={editingRecord.attendees?.staff} onChange={() => setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, staff: !editingRecord.attendees?.staff}})} />
-                             <AttendeeRow label="計畫代表人" name={selectedProject?.representative.name} checked={editingRecord.attendees?.representatives} onChange={() => setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, representatives: !editingRecord.attendees?.representatives}})} />
-                             <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord.attendees?.liaison} onChange={() => setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, liaison: !editingRecord.attendees?.liaison}})} />
+                             <AttendeeRow label="輔導委員" name={selectedProject?.commissioner.name} checked={editingRecord.attendees?.commissioners} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, commissioners: !editingRecord.attendees?.commissioners}})} disabled={!canEditForm} />
+                             <AttendeeRow label="主責人員" name={selectedProject?.chiefStaff.name} checked={editingRecord.attendees?.staff} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, staff: !editingRecord.attendees?.staff}})} disabled={!canEditForm} />
+                             <AttendeeRow label="計畫代表人" name={selectedProject?.representative.name} checked={editingRecord.attendees?.representatives} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, representatives: !editingRecord.attendees?.representatives}})} disabled={!canEditForm} />
+                             <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord.attendees?.liaison} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, liaison: !editingRecord.attendees?.liaison}})} disabled={!canEditForm} />
                              <div className="flex items-center gap-2">
                                 <span className="w-4 h-4 border border-slate-400" /> 其他人員：
-                                <input type="text" className="border-b border-slate-300 outline-none w-1/2" value={editingRecord.attendees?.others} onChange={e => setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, others: e.target.value}})} />
+                                <input type="text" className="border-b border-slate-300 outline-none w-1/2" value={editingRecord.attendees?.others} onChange={e => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, others: e.target.value}})} disabled={!canEditForm} />
                              </div>
                           </td>
                        </tr>
@@ -295,8 +298,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              <textarea 
                                className="record-input min-h-[100px]" 
                                value={editingRecord.keyPoints || ''} 
-                               onChange={e => setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
+                               onChange={e => canEditForm && setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
                                placeholder="請輸入本次訪視的重點事項..."
+                               disabled={!canEditForm}
                              />
                           </td>
                        </tr>
@@ -327,46 +331,57 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                          {editingRecord.photos?.[i] ? (
                                             <>
                                               <img src={editingRecord.photos[i]} className="w-full h-full object-cover" alt={`訪視照片 ${i+1}`} />
-                                              <button 
-                                                onClick={() => {
-                                                  const newPhotos = [...(editingRecord.photos || [])];
-                                                  newPhotos.splice(i, 1);
-                                                  setEditingRecord({...editingRecord, photos: newPhotos});
-                                                }}
-                                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                              >
-                                                <X size={14} />
-                                              </button>
+                                              {canEditForm && (
+                                                <button 
+                                                  onClick={() => {
+                                                    const newPhotos = [...(editingRecord.photos || [])];
+                                                    newPhotos.splice(i, 1);
+                                                    setEditingRecord({...editingRecord, photos: newPhotos});
+                                                  }}
+                                                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                                >
+                                                  <X size={14} />
+                                                </button>
+                                              )}
                                             </>
                                          ) : (
-                                            <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
-                                              <Camera size={28} className="text-slate-300" />
-                                              <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
-                                              <input 
-                                                type="file" 
-                                                accept="image/*" 
-                                                className="hidden" 
-                                                onChange={(e) => {
-                                                  const file = e.target.files?.[0];
-                                                  if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onload = (ev) => {
-                                                      const newPhotos = [...(editingRecord.photos || [])];
-                                                      newPhotos[i] = ev.target?.result as string;
-                                                      setEditingRecord({...editingRecord, photos: newPhotos});
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                  }
-                                                }}
-                                              />
-                                            </label>
+                                            canEditForm ? (
+                                              <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
+                                                <Camera size={28} className="text-slate-300" />
+                                                <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                                                <input 
+                                                  type="file" 
+                                                  accept="image/*" 
+                                                  className="hidden" 
+                                                  onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                      const reader = new FileReader();
+                                                      reader.onload = (ev) => {
+                                                        const newPhotos = [...(editingRecord.photos || [])];
+                                                        newPhotos[i] = ev.target?.result as string;
+                                                        setEditingRecord({...editingRecord, photos: newPhotos});
+                                                      };
+                                                      reader.readAsDataURL(file);
+                                                    }
+                                                  }}
+                                                />
+                                              </label>
+                                            ) : (
+                                              <div className="flex flex-col items-center gap-2 p-4">
+                                                <Camera size={28} className="text-slate-300" />
+                                                <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                                              </div>
+                                            )
                                          )}
                                       </div>
                                    ))}
                                 </div>
-                                <p className="text-xs font-black text-amber-600 flex items-center gap-2">
-                                  <AlertTriangle size={14} /> 至少上傳四張照片
-                                </p>
+                                {canEditForm && (
+                                  <p className="text-xs font-black text-amber-600 flex items-center gap-2">
+                                    <AlertTriangle size={14} /> 至少上傳四張照片
+                                  </p>
+                                )}
                              </div>
                           </td>
                        </tr>
@@ -422,9 +437,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   );
 };
 
-const AttendeeRow = ({ label, name, checked, onChange }: any) => (
+const AttendeeRow = ({ label, name, checked, onChange, disabled }: any) => (
    <div className="flex items-center gap-2">
-      <input type="checkbox" checked={checked} onChange={onChange} className="w-4 h-4" /> 
+      <input type="checkbox" checked={checked} onChange={disabled ? undefined : onChange} disabled={disabled} className="w-4 h-4" /> 
       {label}：({checked ? <span className="text-blue-600">{name}</span> : '自動帶入'})
    </div>
 );
