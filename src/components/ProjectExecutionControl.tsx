@@ -614,9 +614,10 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
             <div className="flex items-center gap-4">
               <label className="text-sm font-bold text-slate-500 w-24">選擇專案：</label>
               <select 
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 value={targetProjectId}
                 onChange={(e) => setTargetProjectId(e.target.value)}
+                disabled={isReadOnly}
               >
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -627,12 +628,13 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
               <label className="text-sm font-bold text-slate-500 w-24">填報月份：</label>
               <input 
                 type="month"
-                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 value={reportMonth.replace('年', '-').replace('月', '')}
                 onChange={(e) => {
                   const [year, month] = e.target.value.split('-');
                   setReportMonth(`${year}年${month}月`);
                 }}
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -670,10 +672,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
               <h2 className="text-xl font-black text-slate-800">成果說明</h2>
             </div>
             <textarea 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 min-h-[120px] outline-none font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 min-h-[120px] outline-none font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:cursor-not-allowed"
               placeholder="請摘要描述本月整體執行成果與重要事項..."
               value={reportData.summary || ''}
               onChange={(e) => setReportData(prev => ({ ...prev, summary: e.target.value }))}
+              disabled={isReadOnly}
             />
           </section>
 
@@ -711,9 +714,10 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">對應工作項目 (預算科目)</label>
                         <select 
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                           value={item.krId}
                           onChange={(e) => updateWorkItem(item.id, 'krId', e.target.value)}
+                          disabled={isReadOnly}
                         >
                           <option value="">請選擇預算科目</option>
                           {allKeyResults.map(kr => (
@@ -734,10 +738,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">當月達成比例</label>
                         <input 
                           type="number"
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                           placeholder="0"
                           value={item.achievedValue || ''}
                           onChange={(e) => updateWorkItem(item.id, 'achievedValue', Number(e.target.value))}
+                          disabled={isReadOnly}
                         />
                       </div>
                     </div>
@@ -746,10 +751,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">執行內容說明</label>
                       <textarea 
-                        className="w-full bg-white border border-slate-200 rounded-xl p-4 min-h-[100px] outline-none font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        className="w-full bg-white border border-slate-200 rounded-xl p-4 min-h-[100px] outline-none font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20 transition-all disabled:bg-slate-100 disabled:cursor-not-allowed"
                         placeholder="請描述本月執行之具體內容..."
                         value={item.executionNote}
                         onChange={(e) => updateWorkItem(item.id, 'executionNote', e.target.value)}
+                        disabled={isReadOnly}
                       />
                     </div>
 
@@ -758,15 +764,17 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳單據 / 附件（支援圖片、PDF、Word）</label>
                       <div className="flex flex-wrap gap-3">
                         {item.attachments?.map((url, idx) => 
-                          renderAttachmentThumbnail(url, idx, () => removeAttachment(item.id, idx))
+                          renderAttachmentThumbnail(url, idx, () => !isReadOnly && removeAttachment(item.id, idx))
                         )}
-                        <button 
-                          onClick={() => { setActiveUploadId(item.id); setUploadType('workItem'); fileInputRef.current?.click(); }}
-                          className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-all"
-                        >
-                          <Plus size={24} />
-                          <span className="text-xs mt-1">新增</span>
-                        </button>
+                        {!isReadOnly && (
+                          <button 
+                            onClick={() => { setActiveUploadId(item.id); setUploadType('workItem'); fileInputRef.current?.click(); }}
+                            className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-all"
+                          >
+                            <Plus size={24} />
+                            <span className="text-xs mt-1">新增</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -840,9 +848,10 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">對應預算內容</label>
                         <select 
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                           value={exp.budgetItemId}
                           onChange={(e) => updateExpenditure(exp.id, 'budgetItemId', e.target.value)}
+                          disabled={isReadOnly}
                         >
                           <option value="">請選擇預算科目</option>
                           <optgroup label="人事費">
@@ -872,9 +881,10 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">經費來源</label>
                         <select 
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                           value={exp.fundingSource}
                           onChange={(e) => updateExpenditure(exp.id, 'fundingSource', e.target.value as FundingSource)}
+                          disabled={isReadOnly}
                         >
                           <option value={FundingSource.SUBSIDY}>補助款</option>
                           <option value={FundingSource.SELF_FUNDED}>自籌款</option>
@@ -888,10 +898,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
                           <input 
                             type="number"
-                            className={`w-full bg-white border rounded-xl pl-8 pr-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500/20 ${isOverBudget ? 'border-red-300 text-red-600' : 'border-slate-200 text-slate-700'}`}
+                            className={`w-full bg-white border rounded-xl pl-8 pr-4 py-3 font-bold outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed ${isOverBudget ? 'border-red-300 text-red-600' : 'border-slate-200 text-slate-700'}`}
                             placeholder="0"
                             value={exp.amount || ''}
                             onChange={(e) => updateExpenditure(exp.id, 'amount', Number(e.target.value))}
+                            disabled={isReadOnly}
                           />
                         </div>
                       </div>
@@ -902,10 +913,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">支出說明</label>
                       <input 
                         type="text"
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                         placeholder="請簡述支出用途..."
                         value={exp.description}
                         onChange={(e) => updateExpenditure(exp.id, 'description', e.target.value)}
+                        disabled={isReadOnly}
                       />
                     </div>
 
@@ -914,15 +926,17 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳憑證 / 發票（支援圖片、PDF、Word）</label>
                       <div className="flex flex-wrap gap-3">
                         {exp.receiptUrls?.map((url, idx) => 
-                          renderAttachmentThumbnail(url, idx, () => removeReceiptUrl(exp.id, idx))
+                          renderAttachmentThumbnail(url, idx, () => !isReadOnly && removeReceiptUrl(exp.id, idx))
                         )}
-                        <button 
-                          onClick={() => { setActiveUploadId(exp.id); setUploadType('expenditure'); fileInputRef.current?.click(); }}
-                          className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition-all"
-                        >
-                          <Plus size={24} />
-                          <span className="text-xs mt-1">新增</span>
-                        </button>
+                        {!isReadOnly && (
+                          <button 
+                            onClick={() => { setActiveUploadId(exp.id); setUploadType('expenditure'); fileInputRef.current?.click(); }}
+                            className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition-all"
+                          >
+                            <Plus size={24} />
+                            <span className="text-xs mt-1">新增</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
