@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import Sidebar from './Sidebar';
+import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ProjectList from './components/ProjectList';
 import ProjectDetail from './components/ProjectDetail';
@@ -127,6 +127,8 @@ const App: React.FC = () => {
     loadFromStorage(STORAGE_KEYS.COACHING_RECORDS, [])
   );
   const [reports] = useState<Report[]>([]);
+  // 月報批次選擇狀態
+  const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
 
   // 當資料變更時自動儲存到 localStorage
   useEffect(() => {
@@ -211,9 +213,6 @@ const App: React.FC = () => {
     if (!window.confirm('確定要刪除這份月報嗎？')) return;
     setMonthlyReports(prev => prev.filter(r => r.id !== reportId));
   };
-
-  // 月報批次選擇狀態
-  const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
 
   // 切換單個月報的選擇狀態
   const toggleReportSelection = (reportId: string) => {
@@ -460,14 +459,17 @@ const App: React.FC = () => {
           selectedProject ? (
             <div className="space-y-6">
               <ProjectDetail project={selectedProject} reports={reports} onBack={() => setSelectedProject(null)} />
-              <div className="flex gap-4 max-w-5xl mx-auto">
-                <button onClick={() => setEditMode('BASIC')} className="flex-1 py-5 bg-white border-2 border-slate-200 text-slate-700 font-black rounded-[32px] hover:bg-slate-50 transition-all flex flex-col items-center gap-2 shadow-sm">
-                  <Target size={24} /> 編輯計畫細節與預算
-                </button>
-                <button onClick={() => setEditMode('CONTROL')} className="flex-1 py-5 bg-[#2D3E50] text-white font-black rounded-[32px] hover:bg-slate-700 transition-all shadow-xl flex flex-col items-center gap-2">
-                  <TrendingUp size={24} /> 填寫本月執行管控表
-                </button>
-              </div>
+              {/* 輔導委員只能閱覽，不顯示編輯按鈕 */}
+              {!isCoach && (
+                <div className="flex gap-4 max-w-5xl mx-auto">
+                  <button onClick={() => setEditMode('BASIC')} className="flex-1 py-5 bg-white border-2 border-slate-200 text-slate-700 font-black rounded-[32px] hover:bg-slate-50 transition-all flex flex-col items-center gap-2 shadow-sm">
+                    <Target size={24} /> 編輯計畫細節與預算
+                  </button>
+                  <button onClick={() => setEditMode('CONTROL')} className="flex-1 py-5 bg-[#2D3E50] text-white font-black rounded-[32px] hover:bg-slate-700 transition-all shadow-xl flex flex-col items-center gap-2">
+                    <TrendingUp size={24} /> 填寫本月執行管控表
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
