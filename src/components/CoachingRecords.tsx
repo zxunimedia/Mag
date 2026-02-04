@@ -239,8 +239,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </div>
                           </td>
                        </tr>
-                       {/* 1. 個別工作項目訪視內容 (原訪視內容) - 輔導老師不需填寫 */}
-                       {!isCoach && (
+                       {/* 1. 個別工作項目訪視內容 (原訪視內容) - 所有角色都可看，但操作人員和輔導委員唯讀 */}
                        <tr>
                           <td className="record-header">個別工作項目<br/>訪視內容</td>
                           <td colSpan={5} className="record-cell p-0">
@@ -290,7 +289,6 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </table>
                           </td>
                        </tr>
-                       )}
                        {/* 2. 整體訪視重點 (原訪視重點) */}
                        <tr>
                           <td className="record-header">整體訪視重點</td>
@@ -304,8 +302,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              />
                           </td>
                        </tr>
-                       {/* 3. 整體訪視結果 - 輔導老師不需填寫 */}
-                       {!isCoach && (
+                       {/* 3. 整體訪視結果 - 所有角色都可看，但操作人員和輔導委員唯讀 */}
                        <tr>
                           <td className="record-header">整體訪視結果</td>
                           <td colSpan={5} className="record-cell p-0">
@@ -319,7 +316,6 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </table>
                           </td>
                        </tr>
-                       )}
                        {/* 訪視照片 */}
                        <tr>
                           <td className="record-header">訪視照片</td>
@@ -385,7 +381,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              </div>
                           </td>
                        </tr>
-                       {/* 受輔導團隊意見回應 */}
+                       {/* 受輔導團隊意見回應 - 只有操作人員可以編輯，輔導委員和管理員唯讀 */}
                        <tr>
                           <td className="record-header" colSpan={2}>受輔導團隊意見回應</td>
                           <td className="record-cell" colSpan={4}>
@@ -393,7 +389,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                 className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
                                 placeholder="請受輔導團隊填寫對此次輔導紀錄的意見回應..."
                                 value={editingRecord.operatorFeedback || ''}
-                                onChange={e => setEditingRecord({...editingRecord, operatorFeedback: e.target.value})}
+                                onChange={e => isOperator && setEditingRecord({...editingRecord, operatorFeedback: e.target.value})}
+                                disabled={!isOperator}
                              />
                           </td>
                        </tr>

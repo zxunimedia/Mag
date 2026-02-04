@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Project, Report } from '../types';
+import { Project, Report, BudgetCategory } from '../types';
 import { analyzeProjectStatus } from '../services/geminiService';
-import { ChevronLeft, Calendar, User, Sparkles, MessageSquare, Loader2 } from 'lucide-react';
+import { ChevronLeft, Calendar, User, Sparkles, MessageSquare, Loader2, Target, DollarSign, Users, MapPin, FileText, Building2 } from 'lucide-react';
 
 interface ProjectDetailProps {
   project: Project;
@@ -105,6 +105,149 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
           </div>
         </div>
       </div>
+
+      {/* 計畫基本資料 */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Building2 className="text-blue-500" size={20} />
+          計畫基本資料
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-3">
+            <div className="text-sm">
+              <span className="text-gray-500">計畫編號：</span>
+              <span className="font-bold text-gray-800">{project.projectCode || project.id}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">執行單位：</span>
+              <span className="font-bold text-gray-800">{project.executingUnit || project.unitName}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">計畫類別：</span>
+              <span className="font-bold text-gray-800">{project.category}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">執行期間：</span>
+              <span className="font-bold text-gray-800">{project.period || `${project.startDate} ~ ${project.endDate}`}</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="text-sm">
+              <span className="text-gray-500">負責人：</span>
+              <span className="font-bold text-gray-800">{project.representative?.name} ({project.representative?.title})</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">聯絡人：</span>
+              <span className="font-bold text-gray-800">{project.liaison?.name} ({project.liaison?.title})</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">聯絡信箱：</span>
+              <span className="font-bold text-gray-800">{project.liaison?.email}</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="text-sm">
+              <span className="text-gray-500">申請金額：</span>
+              <span className="font-bold text-emerald-600">${project.appliedAmount?.toLocaleString()}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">核定金額：</span>
+              <span className="font-bold text-emerald-600">${project.approvedAmount?.toLocaleString()}</span>
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-500">輔導委員：</span>
+              <span className="font-bold text-gray-800">{project.commissioner?.name}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* OKR 願景與目標 */}
+      {project.visions && project.visions.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Target className="text-amber-500" size={20} />
+            願景與目標 (OKR)
+          </h3>
+          <div className="space-y-6">
+            {project.visions.map((vision, vIdx) => (
+              <div key={vision.id} className="border-l-4 border-amber-400 pl-4">
+                <h4 className="font-bold text-gray-800 mb-2">願景 {vIdx + 1}：{vision.title}</h4>
+                <p className="text-sm text-gray-600 mb-4">{vision.description}</p>
+                <div className="space-y-4 ml-4">
+                  {vision.objectives.map((obj, oIdx) => (
+                    <div key={obj.id} className="bg-gray-50 p-4 rounded-lg">
+                      <h5 className="font-bold text-gray-700 mb-2">目標 {oIdx + 1}：{obj.title}</h5>
+                      <div className="space-y-2">
+                        {obj.keyResults.map((kr, kIdx) => (
+                          <div key={kr.id} className="flex items-start gap-2 text-sm">
+                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">KR{kIdx + 1}</span>
+                            <span className="text-gray-600">{kr.description}</span>
+                            <span className="text-gray-400 ml-auto">目標值: {kr.targetValue}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 預算明細 */}
+      {project.budgetItems && project.budgetItems.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <DollarSign className="text-emerald-500" size={20} />
+            預算明細
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-bold text-gray-600">類別</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-600">項目名稱</th>
+                  <th className="px-4 py-3 text-center font-bold text-gray-600">數量</th>
+                  <th className="px-4 py-3 text-center font-bold text-gray-600">單位</th>
+                  <th className="px-4 py-3 text-right font-bold text-gray-600">單價</th>
+                  <th className="px-4 py-3 text-right font-bold text-gray-600">總價</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {project.budgetItems.map(item => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        item.category === BudgetCategory.PERSONNEL ? 'bg-blue-100 text-blue-700' :
+                        item.category === BudgetCategory.BUSINESS ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {item.category === BudgetCategory.PERSONNEL ? '人事費' :
+                         item.category === BudgetCategory.BUSINESS ? '業務費' : '其他'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{item.name}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{item.unit}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">${item.unitPrice?.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-bold text-emerald-600">${item.totalPrice?.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50">
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-right font-bold text-gray-700">預算總計</td>
+                  <td className="px-4 py-3 text-right font-black text-emerald-600 text-lg">
+                    ${project.budgetItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0).toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
