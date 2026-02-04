@@ -22,8 +22,9 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
 
   const isCoach = currentUserRole === UserRole.COACH;
   const isAdmin = currentUserRole === UserRole.ADMIN;
-  // 只有輔導老師可以編輯結案報告，管理員只能閱覽
+  // 只有輔導老師可以編輯結案報告，管理員只能閱覽和匯出
   const canEdit = isCoach;
+  const canView = isCoach || isAdmin;
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   
   // 取得該計畫的所有輔導紀錄
@@ -116,7 +117,7 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
     setShowModal(false);
   };
 
-  if (!isCoach && !isAdmin) {
+  if (!canView) {
     return null;
   }
 
@@ -124,12 +125,19 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
     <div className="max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500 px-4">
       <div className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-            <div className="p-3 bg-emerald-500 text-white rounded-2xl">
-              <FileText size={28} />
-            </div>
-            輔導結案報告
-          </h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+              <div className="p-3 bg-emerald-500 text-white rounded-2xl">
+                <FileText size={28} />
+              </div>
+              輔導結案報告
+            </h2>
+            {isAdmin && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                唯讀模式 - 僅可查看和匯出
+              </span>
+            )}
+          </div>
           <div className="flex gap-4">
             <select 
               value={selectedProjectId}
@@ -309,14 +317,16 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
                 onClick={() => setShowModal(false)}
                 className="px-8 py-3 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all"
               >
-                取消
+                {canEdit ? '取消' : '關閉'}
               </button>
-              <button 
-                onClick={handleSaveReport}
-                className="px-12 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-xl hover:bg-emerald-700 transition-all flex items-center gap-3"
-              >
-                <Save size={20} /> 儲存結案報告
-              </button>
+              {canEdit && (
+                <button 
+                  onClick={handleSaveReport}
+                  className="px-12 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-xl hover:bg-emerald-700 transition-all flex items-center gap-3"
+                >
+                  <Save size={20} /> 儲存結案報告
+                </button>
+              )}
             </div>
           </div>
         </div>

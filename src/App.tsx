@@ -21,6 +21,8 @@ const MOCK_PROJECTS: Project[] = [
     projectCode: '114-原鄉-001',  // 計畫編號
     unitId: 'unit-101',
     unitName: '拔馬部落文化發展協會',
+    assignedCoaches: ['coach@moc.gov.tw'],  // 指派給輔導老師
+    assignedOperators: ['operator@example.com'],  // 指派給操作人員
     name: '從庫房到衣著,拔馬部落衣飾復刻及日常化計畫',
     executingUnit: '拔馬部落文化發展協會',
     year: '114年度',
@@ -149,11 +151,26 @@ const App: React.FC = () => {
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isCoach = currentUser.role === UserRole.COACH;
+  const isOperator = currentUser.role === UserRole.OPERATOR;
 
-  // 輔導委員可以看到所有計畫（但只能閱覽）
-  const visibleProjects = (isAdmin || isCoach) 
+  // 計畫指派功能：
+  // - 管理員：可以看到所有計畫
+  // - 輔導老師：只能看到被指派的計畫（根據 commissioner.email 或 assignedCoaches）
+  // - 操作人員：只能看到被指派的計畫（根據 unitId 或 assignedOperators）
+  const visibleProjects = isAdmin 
     ? projects 
-    : projects.filter(p => p.unitId === currentUser.unitId || p.liaison.email === currentUser.email);
+    : isCoach
+      ? projects.filter(p => 
+          p.commissioner?.email === currentUser.email || 
+          p.assignedCoaches?.includes(currentUser.id) ||
+          p.assignedCoaches?.includes(currentUser.email)
+        )
+      : projects.filter(p => 
+          p.unitId === currentUser.unitId || 
+          p.liaison?.email === currentUser.email ||
+          p.assignedOperators?.includes(currentUser.id) ||
+          p.assignedOperators?.includes(currentUser.email)
+        );
 
   // 儲存/更新計畫 (包含預算編列)
   const handleUpdateProject = (updated: Project) => {

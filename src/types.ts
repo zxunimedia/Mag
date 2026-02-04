@@ -204,6 +204,8 @@ export interface Project {
   projectCode?: string;      // 計畫編號（用於輔導紀錄序號）
   unitId: string;
   unitName: string;
+  assignedCoaches?: string[];   // 指派的輔導老師 ID 列表
+  assignedOperators?: string[]; // 指派的操作人員 ID 列表
   name: string;
   executingUnit: string;
   year: string;

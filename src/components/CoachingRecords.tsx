@@ -15,10 +15,13 @@ interface CoachingRecordsProps {
 
 const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, onDeleteRecord, currentUserRole, currentUserUnitId }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  // 管理員和輔導老師可以看到所有計畫，操作人員只能看到自己單位的計畫
-  const visibleProjects = (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.COACH)
+  // 計畫指派功能：
+  // - 管理員：可以看到所有計畫
+  // - 輔導老師：只能看到被指派的計畫
+  // - 操作人員：只能看到被指派的計畫
+  const visibleProjects = currentUserRole === UserRole.ADMIN
     ? projects 
-    : projects.filter(p => p.unitId === currentUserUnitId);
+    : projects;  // 過濾已在 App.tsx 中完成，這裡直接使用傳入的 projects
   const [selectedProjectId, setSelectedProjectId] = useState(visibleProjects[0]?.id || '');
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Partial<CoachingRecord> | null>(null);
@@ -82,20 +85,33 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
     setShowModal(true);
   };
 
+  // 判斷紀錄是否是輔導老師填寫的
+  const isCoachRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
+    if (!record.writer) return false;
+    const writerLower = record.writer.toLowerCase();
+    return writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@');
+  };
+  
+  // 判斷紀錄是否是輔導團隊（管理員）填寫的
+  const isTeamRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
+    if (!record.writer) return false;
+    const writerLower = record.writer.toLowerCase();
+    return writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@') || writerLower.includes('團隊') || writerLower.includes('team');
+  };
+
   // 判斷當前用戶是否可以編輯這筆紀錄
-  // 管理員可以編輯自己填寫的紀錄，輔導老師可以編輯自己填寫的紀錄
-  // 但不能編輯別人填寫的紀錄（只能查看）
-  const canEditRecord = (record: CoachingRecord) => {
+  // 輔導老師：可編輯自己的紀錄，可看輔導團隊的（唯讀）
+  // 輔導團隊（管理員）：可編輯自己的紀錄，可看輔導老師的（唯讀）
+  // 操作人員：可看兩種紀錄（唯讀），只能在下方寫回應
+  const canEditRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
     // 操作人員只能編輯「受輔導團隊意見回應」，不能編輯其他欄位
     if (isOperator) return false;
-    // 管理員和輔導老師只能編輯自己填寫的紀錄
-    // 如果紀錄沒有 writer 欄位，則允許編輯（向下相容）
+    // 新增紀錄時（沒有 writer），允許編輯
     if (!record.writer) return true;
-    // 檢查填寫人是否是當前用戶的角色
-    // 管理員填寫的紀錄只有管理員可以編輯，輔導老師填寫的紀錄只有輔導老師可以編輯
-    const writerLower = record.writer.toLowerCase();
-    if (isAdmin && (writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@'))) return true;
-    if (isCoach && (writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@'))) return true;
+    // 輔導老師只能編輯輔導老師填寫的紀錄
+    if (isCoach && isCoachRecord(record)) return true;
+    // 管理員（輔導團隊）只能編輯輔導團隊填寫的紀錄
+    if (isAdmin && isTeamRecord(record)) return true;
     return false;
   };
 
@@ -152,7 +168,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                   <div className="flex justify-between items-start">
                     <span className="px-4 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">{record.serialNumber}</span>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => handleOpenEdit(record)} className="p-2 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100" title="編輯紀錄"><Pencil size={18} /></button>
+                       <button onClick={() => handleOpenEdit(record)} className="p-2 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100" title={isOperator ? '查看紀錄' : '編輯紀錄'}><Pencil size={18} /></button>
                        {currentUserRole === UserRole.ADMIN && onDeleteRecord && (
                          deleteConfirm === record.id ? (
                            <div className="flex items-center gap-1">
@@ -171,8 +187,11 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                      <div className="flex items-center gap-2 text-amber-600"><Info size={14} /> 第 {record.frequency} 次訪視</div>
                   </div>
                   {record.writer && (
-                    <div className="text-xs font-bold text-slate-400 pt-1">
-                      填寫人：{record.writer}
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isCoachRecord(record) ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                        {isCoachRecord(record) ? '輔導老師' : '輔導團隊'}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400">填寫人：{record.writer}</span>
                     </div>
                   )}
                   <button onClick={() => handleOpenEdit(record)} className="w-full py-3 bg-slate-50 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
@@ -210,7 +229,19 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-5xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             <div className="px-10 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-xl font-black text-slate-800 tracking-tight">訪視輔導紀錄表</h3>
+              <div className="flex items-center gap-4">
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">訪視輔導紀錄表</h3>
+                {isOperator && (
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                    唯讀模式 - 僅可填寫「受輔導團隊意見回應」
+                  </span>
+                )}
+                {!canEditForm && !isOperator && (
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
+                    唯讀模式
+                  </span>
+                )}
+              </div>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white rounded-full text-slate-400 shadow-sm transition-all"><X size={24} /></button>
             </div>
 
@@ -457,12 +488,14 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                      <Upload size={18} /> 上傳附件備份 (掃描檔)
                   </button>
                </div>
-               <button 
-                onClick={handleSave}
-                className="px-12 py-4 bg-blue-700 text-white rounded-2xl font-black shadow-xl hover:bg-blue-800 transition-all flex items-center gap-3"
-              >
-                <Save size={20} /> 確認儲存填報紀錄
-              </button>
+               {(canEditForm || isOperator) && (
+                <button 
+                  onClick={handleSave}
+                  className="px-12 py-4 bg-blue-700 text-white rounded-2xl font-black shadow-xl hover:bg-blue-800 transition-all flex items-center gap-3"
+                >
+                  <Save size={20} /> {isOperator ? '儲存回應' : '確認儲存填報紀錄'}
+                </button>
+              )}
             </div>
           </div>
         </div>

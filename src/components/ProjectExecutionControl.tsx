@@ -588,8 +588,17 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
               <FileText size={32} />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">月報填報</h1>
-              <p className="text-blue-100 text-sm mt-1">系統已全面更新至 v1.1 (包含經費核銷與預算追蹤)</p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-black tracking-tight">月報填報</h1>
+                {isReadOnly && (
+                  <span className="px-3 py-1 bg-amber-400 text-amber-900 rounded-full text-xs font-black">
+                    唯讀模式
+                  </span>
+                )}
+              </div>
+              <p className="text-blue-100 text-sm mt-1">
+                {isReadOnly ? '輔導老師僅可閱覽月報內容，不可編輯' : '系統已全面更新至 v1.1 (包含經費核銷與預算追蹤)'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -1361,7 +1370,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
       {isReadOnly && (
         <div className="fixed bottom-8 right-8 z-40">
           <div className="px-6 py-3 bg-amber-100 text-amber-800 rounded-2xl font-bold shadow-lg flex items-center gap-2 border border-amber-200">
-            <Eye size={20} /> 唯讀模式 - 僅供閱覽
+            <Eye size={20} /> 唯讀模式 - 輔導老師僅可閱覽月報內容
           </div>
         </div>
       )}
