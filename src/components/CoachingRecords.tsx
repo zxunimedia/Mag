@@ -27,8 +27,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isCoach = currentUserRole === UserRole.COACH;
   const isOperator = currentUserRole === UserRole.OPERATOR;
-  // 只有管理員可以編輯訪視紀錄表，輔導委員和操作人員都只能閱覽
-  const canEditForm = isAdmin;
+  // 只有輔導老師可以編輯訪視紀錄表，管理員和操作人員都只能閱覽
+  const canEditForm = isCoach;
   const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
@@ -36,7 +36,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const initVisitRow = (id: string, workItem: string = ''): VisitRow => ({ id, workItem, opinion: '', status: KRStatus.ON_TRACK, strategy: '' });
 
   const handleOpenNew = () => {
-    if (!isAdmin) return;  // 只有管理員可以新增訪視紀錄
+    if (!isCoach) return;  // 只有輔導老師可以新增訪視紀錄
     // 使用計畫編號生成序號，格式：計畫編號-流水號
     const projectCode = selectedProject?.projectCode || selectedProjectId;
     const serial = `${projectCode}-${(filteredRecords.length + 1).toString().padStart(3, '0')}`;
@@ -119,7 +119,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
               >
                 <Download size={20} /> 匯出 CSV
               </button>
-              {isAdmin && (
+              {isCoach && (
                 <button onClick={handleOpenNew} className="px-8 py-3 bg-[#2D3E50] text-white rounded-2xl font-black shadow-lg hover:bg-slate-700 transition-all flex items-center gap-2">
                   <Plus size={20} /> 新增紀錄表
                 </button>

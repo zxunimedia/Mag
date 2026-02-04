@@ -22,6 +22,8 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
 
   const isCoach = currentUserRole === UserRole.COACH;
   const isAdmin = currentUserRole === UserRole.ADMIN;
+  // 只有輔導老師可以編輯結案報告，管理員只能閱覽
+  const canEdit = isCoach;
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   
   // 取得該計畫的所有輔導紀錄
@@ -136,12 +138,14 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
             >
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <button 
-              onClick={handleGenerateReport}
-              className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
-            >
-              <Plus size={20} /> 產生結案報告
-            </button>
+            {canEdit && (
+              <button 
+                onClick={handleGenerateReport}
+                className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
+              >
+                <Plus size={20} /> 產生結案報告
+              </button>
+            )}
           </div>
         </div>
 
@@ -268,12 +272,18 @@ const CoachingFinalReport: React.FC<CoachingFinalReportProps> = ({
               {/* 綜合輔導意見 */}
               <h2 className="text-lg font-black text-slate-700 border-b-2 border-slate-300 pb-2 mb-4">綜合輔導意見</h2>
               <div className="border-2 border-slate-300 p-4 mb-6 min-h-[150px]">
-                <textarea
-                  className="w-full min-h-[120px] outline-none font-medium text-slate-800 resize-none"
-                  placeholder="請輸入綜合輔導意見..."
-                  value={comprehensiveOpinion}
-                  onChange={e => setComprehensiveOpinion(e.target.value)}
-                />
+                {canEdit ? (
+                  <textarea
+                    className="w-full min-h-[120px] outline-none font-medium text-slate-800 resize-none"
+                    placeholder="請輸入綜合輔導意見..."
+                    value={comprehensiveOpinion}
+                    onChange={e => setComprehensiveOpinion(e.target.value)}
+                  />
+                ) : (
+                  <div className="w-full min-h-[120px] font-medium text-slate-800">
+                    {comprehensiveOpinion || <span className="text-slate-400">尚未填寫綜合輔導意見</span>}
+                  </div>
+                )}
               </div>
 
               {/* 訪視照片彙整 */}
