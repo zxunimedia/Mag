@@ -609,9 +609,9 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                         )}
                       </div>
 
-                      {/* 當月達成數 */}
+                      {/* 當月達成比例 */}
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">當月達成數</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">當月達成比例</label>
                         <input 
                           type="number"
                           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
