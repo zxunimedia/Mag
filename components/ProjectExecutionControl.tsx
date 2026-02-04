@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Project, KeyResult, KRStatus, MonthlyReport, WorkItemReport, ExpenditureDetail, BudgetItem, BudgetCategory, CoachingRecord, FundingSource } from '../types';
-import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2, Link2, ExternalLink, Clock, ChevronDown, Upload, Calendar, Target, TrendingUp, AlertCircle, CheckCircle2, FileDown } from 'lucide-react';
+import { Save, ArrowLeft, Plus, Trash2, X, FileText, BarChart3, AlertTriangle, Paperclip, FileCheck, MessageSquare, DollarSign, Eye, ZoomIn, Loader2, Link2, ExternalLink, Clock, ChevronDown, Upload, Calendar, Target, TrendingUp, AlertCircle, CheckCircle2, FileDown, File } from 'lucide-react';
 
 interface ProjectExecutionControlProps {
   projects: Project[];
@@ -39,6 +39,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
   const [activeUploadId, setActiveUploadId] = useState<string | null>(null);
   const [uploadType, setUploadType] = useState<'expenditure' | 'workItem'>('expenditure');
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewFileType, setPreviewFileType] = useState<'image' | 'pdf' | 'word' | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   
@@ -233,6 +234,58 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
     }
   };
 
+  // 判斷檔案類型
+  const getFileType = (url: string): 'image' | 'pdf' | 'word' => {
+    if (url.startsWith('data:image/')) return 'image';
+    if (url.startsWith('data:application/pdf')) return 'pdf';
+    if (url.startsWith('data:application/msword') || url.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document')) return 'word';
+    // 根據副檔名判斷
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('.pdf')) return 'pdf';
+    if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) return 'word';
+    return 'image';
+  };
+
+  // 處理檔案預覽
+  const handleFilePreview = (url: string) => {
+    const fileType = getFileType(url);
+    setPreviewFileType(fileType);
+    setPreviewImageUrl(url);
+  };
+
+  // 渲染附件縮圖
+  const renderAttachmentThumbnail = (url: string, idx: number, onRemove: () => void) => {
+    const fileType = getFileType(url);
+    return (
+      <div key={idx} className="relative group">
+        <div 
+          className="w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-200 bg-white cursor-pointer hover:border-blue-400 transition-all flex items-center justify-center"
+          onClick={() => handleFilePreview(url)}
+        >
+          {fileType === 'image' ? (
+            <img src={url} className="w-full h-full object-cover" alt="附件" />
+          ) : fileType === 'pdf' ? (
+            <div className="flex flex-col items-center justify-center text-red-500">
+              <FileText size={32} />
+              <span className="text-xs mt-1 font-bold">PDF</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-blue-500">
+              <File size={32} />
+              <span className="text-xs mt-1 font-bold">Word</span>
+            </div>
+          )}
+        </div>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    );
+  };
+
   // 取得預算科目的剩餘餘額
   const getBudgetRemaining = (budgetItemId: string) => {
     const item = selectedProject?.budgetItems.find(b => b.id === budgetItemId);
@@ -368,18 +421,41 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
-      {/* 燈箱 Modal */}
+      {/* 燈箱 Modal - 支援圖片、PDF、Word 預覽 */}
       {previewImageUrl && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/95 flex items-center justify-center p-8 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImageUrl(null)}>
+        <div className="fixed inset-0 z-[100] bg-slate-900/95 flex items-center justify-center p-8 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => { setPreviewImageUrl(null); setPreviewFileType(null); }}>
            <button className="absolute top-8 right-8 p-4 text-white/50 hover:text-white transition-colors">
               <X size={48} />
            </button>
            <div className="relative max-w-full max-h-full flex flex-col items-center gap-6" onClick={e => e.stopPropagation()}>
-              <img 
-                src={previewImageUrl} 
-                className="max-w-full max-h-[80vh] object-contain shadow-[0_0_100px_rgba(255,255,255,0.1)] rounded-xl border border-white/10"
-                alt="Preview"
-              />
+              {previewFileType === 'image' ? (
+                <img 
+                  src={previewImageUrl} 
+                  className="max-w-full max-h-[80vh] object-contain shadow-[0_0_100px_rgba(255,255,255,0.1)] rounded-xl border border-white/10"
+                  alt="Preview"
+                />
+              ) : previewFileType === 'pdf' ? (
+                <div className="w-full max-w-4xl h-[80vh] bg-white rounded-xl overflow-hidden">
+                  <iframe 
+                    src={previewImageUrl} 
+                    className="w-full h-full"
+                    title="PDF Preview"
+                  />
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-12 text-center">
+                  <File size={80} className="mx-auto text-blue-500 mb-6" />
+                  <p className="text-xl font-bold text-slate-800 mb-4">Word 文件預覽</p>
+                  <p className="text-slate-500 mb-6">Word 檔案無法直接在瀏覽器中預覽</p>
+                  <a 
+                    href={previewImageUrl} 
+                    download="document.docx"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+                  >
+                    <FileDown size={20} /> 下載檔案
+                  </a>
+                </div>
+              )}
            </div>
         </div>
       )}
@@ -559,21 +635,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
 
                     {/* 上傳單據/附件 */}
                     <div className="space-y-3">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳單據 / 附件</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳單據 / 附件（支援圖片、PDF、Word）</label>
                       <div className="flex flex-wrap gap-3">
-                        {item.attachments?.map((url, idx) => (
-                          <div key={idx} className="relative group">
-                            <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-200 bg-white cursor-pointer hover:border-blue-400 transition-all">
-                              <img src={url} className="w-full h-full object-cover" onClick={() => setPreviewImageUrl(url)} />
-                            </div>
-                            <button 
-                              onClick={() => removeAttachment(item.id, idx)}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
+                        {item.attachments?.map((url, idx) => 
+                          renderAttachmentThumbnail(url, idx, () => removeAttachment(item.id, idx))
+                        )}
                         <button 
                           onClick={() => { setActiveUploadId(item.id); setUploadType('workItem'); fileInputRef.current?.click(); }}
                           className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-500 transition-all"
@@ -725,21 +791,11 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
 
                     {/* 上傳憑證 */}
                     <div className="space-y-3">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳憑證 / 發票</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">上傳憑證 / 發票（支援圖片、PDF、Word）</label>
                       <div className="flex flex-wrap gap-3">
-                        {exp.receiptUrls?.map((url, idx) => (
-                          <div key={idx} className="relative group">
-                            <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-emerald-200 bg-white cursor-pointer hover:border-emerald-400 transition-all">
-                              <img src={url} className="w-full h-full object-cover" onClick={() => setPreviewImageUrl(url)} />
-                            </div>
-                            <button 
-                              onClick={() => removeReceiptUrl(exp.id, idx)}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
+                        {exp.receiptUrls?.map((url, idx) => 
+                          renderAttachmentThumbnail(url, idx, () => removeReceiptUrl(exp.id, idx))
+                        )}
                         <button 
                           onClick={() => { setActiveUploadId(exp.id); setUploadType('expenditure'); fileInputRef.current?.click(); }}
                           className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition-all"
@@ -860,14 +916,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {allReports.filter(r => r.projectId === targetProjectId).length === 0 ? (
+                {allReports.filter(r => r.projectId === targetProjectId && r.submittedAt && !r.isDraft).length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                       尚無歷史紀錄
                     </td>
                   </tr>
                 ) : (
-                  allReports.filter(r => r.projectId === targetProjectId).map(report => {
+                  allReports.filter(r => r.projectId === targetProjectId && r.submittedAt && !r.isDraft).map(report => {
                     const total = report.expenditures?.reduce((sum, e) => sum + e.amount, 0) || 0;
                     return (
                       <tr key={report.id} className="hover:bg-slate-50 transition-colors">
@@ -895,7 +951,7 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
         ref={fileInputRef} 
         className="hidden" 
         onChange={handleFileSelect} 
-        accept="image/*,application/pdf" 
+        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
         multiple
       />
 
@@ -904,8 +960,14 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
         <div className="fixed bottom-8 right-8 z-40 flex gap-4">
           <button 
             onClick={() => {
-              // 儲存草稿
-              console.log('儲存草稿', reportData);
+              // 儲存草稿 - 不設定 submittedAt，表示還是草稿狀態
+              const draftReport: MonthlyReport = {
+                ...reportData as MonthlyReport,
+                isDraft: true,
+                savedAt: new Date().toLocaleString('zh-TW')
+              };
+              onSaveReport(draftReport);
+              alert('草稿已儲存！您可以稍後繼續編輯。');
             }}
             className="px-8 py-4 bg-white text-slate-700 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 border border-slate-200"
           >
@@ -913,11 +975,15 @@ const ProjectExecutionControl: React.FC<ProjectExecutionControlProps> = ({
           </button>
           <button 
             onClick={() => {
-              const finalReport: MonthlyReport = {
-                ...reportData as MonthlyReport,
-                submittedAt: new Date().toLocaleString('zh-TW')
-              };
-              onSaveReport(finalReport);
+              if (confirm('確定要提交月報嗎？提交後將無法再修改。')) {
+                const finalReport: MonthlyReport = {
+                  ...reportData as MonthlyReport,
+                  isDraft: false,
+                  submittedAt: new Date().toLocaleString('zh-TW')
+                };
+                onSaveReport(finalReport);
+                alert('月報已成功提交！');
+              }
             }}
             className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2"
           >
