@@ -256,13 +256,13 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                    {editingRecord.visitContents?.map((row, idx) => (
                                       <tr key={row.id}>
                                          <td className="border-r border-slate-300 p-2">
-                                            <input type="text" className="record-input text-center" value={row.workItem} onChange={e => updateVisitContent(row.id, 'workItem', e.target.value)} placeholder={`項目 ${idx+1}`} />
+                                            <input type="text" className="record-input text-center" value={row.workItem} onChange={e => canEditForm && updateVisitContent(row.id, 'workItem', e.target.value)} placeholder={`項目 ${idx+1}`} disabled={!canEditForm} />
                                          </td>
                                          <td className="border-r border-slate-300 p-2">
-                                            <textarea className="record-input min-h-[60px]" value={row.opinion} onChange={e => updateVisitContent(row.id, 'opinion', e.target.value)} />
+                                            <textarea className="record-input min-h-[60px]" value={row.opinion} onChange={e => canEditForm && updateVisitContent(row.id, 'opinion', e.target.value)} disabled={!canEditForm} />
                                          </td>
                                          <td className="p-2">
-                                            <StatusPicker row={row} onChange={(f, v) => updateVisitContent(row.id, f as any, v)} />
+                                            <StatusPicker row={row} onChange={(f, v) => canEditForm && updateVisitContent(row.id, f as any, v)} disabled={!canEditForm} />
                                          </td>
                                       </tr>
                                    ))}
@@ -270,20 +270,20 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                    <tr>
                                       <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫捲動在地社區/部落參與人數</td>
                                       <td className="border-r border-slate-300 p-2">
-                                         <textarea className="record-input" value={editingRecord.communityMobilization?.opinion} onChange={e => setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, opinion: e.target.value}})} />
+                                         <textarea className="record-input" value={editingRecord.communityMobilization?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, opinion: e.target.value}})} disabled={!canEditForm} />
                                       </td>
                                       <td className="p-2">
-                                         <StatusPicker row={editingRecord.communityMobilization!} onChange={(f, v) => setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, [f]: v}})} />
+                                         <StatusPicker row={editingRecord.communityMobilization!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, [f]: v}})} disabled={!canEditForm} />
                                       </td>
                                    </tr>
                                    {/* 固定項 2 */}
                                    <tr>
                                       <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫串連社群個數</td>
                                       <td className="border-r border-slate-300 p-2">
-                                         <textarea className="record-input" value={editingRecord.communityConnection?.opinion} onChange={e => setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, opinion: e.target.value}})} />
+                                         <textarea className="record-input" value={editingRecord.communityConnection?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, opinion: e.target.value}})} disabled={!canEditForm} />
                                       </td>
                                       <td className="p-2">
-                                         <StatusPicker row={editingRecord.communityConnection!} onChange={(f, v) => setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, [f]: v}})} />
+                                         <StatusPicker row={editingRecord.communityConnection!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, [f]: v}})} disabled={!canEditForm} />
                                       </td>
                                    </tr>
                                 </tbody>
@@ -311,10 +311,10 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                           <td colSpan={5} className="record-cell p-0">
                              <table className="w-full border-collapse">
                                 <tbody className="divide-y border-slate-200">
-                                   <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} />
-                                   <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} />
-                                   <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} />
-                                   <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} />
+                                   <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} disabled={!canEditForm} />
+                                   <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} disabled={!canEditForm} />
+                                   <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} disabled={!canEditForm} />
+                                   <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} disabled={!canEditForm} />
                                 </tbody>
                              </table>
                           </td>
@@ -444,22 +444,22 @@ const AttendeeRow = ({ label, name, checked, onChange, disabled }: any) => (
    </div>
 );
 
-const ResultRow = ({ label, result, onChange }: { label: string, result: AssessmentResult, onChange: (r: AssessmentResult) => void }) => (
+const ResultRow = ({ label, result, onChange, disabled }: { label: string, result: AssessmentResult, onChange: (r: AssessmentResult) => void, disabled?: boolean }) => (
    <tr className="hover:bg-slate-50/50 transition-colors">
       <td className="p-4 font-black text-slate-600 w-1/3">{label}：</td>
       <td className="p-4">
          <div className="flex flex-col gap-3">
             <div className="flex gap-6">
                {[KRStatus.AHEAD, KRStatus.ON_TRACK, KRStatus.DELAYED].map(s => (
-                  <label key={s} className="flex items-center gap-2 cursor-pointer">
-                     <input type="radio" checked={result.status === s} onChange={() => onChange({...result, status: s})} /> {s}
+                  <label key={s} className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                     <input type="radio" checked={result.status === s} onChange={() => !disabled && onChange({...result, status: s})} disabled={disabled} /> {s}
                   </label>
                ))}
             </div>
             {result.status === KRStatus.DELAYED && (
                <div className="flex items-center gap-2 bg-red-50 p-2 rounded-lg border border-red-100">
                   <span className="text-[10px] font-black text-red-600 whitespace-nowrap">改進策略：</span>
-                  <input type="text" className="w-full bg-transparent border-none outline-none text-xs font-bold" value={result.strategy} onChange={e => onChange({...result, strategy: e.target.value})} placeholder="請輸入改善方針..." />
+                  <input type="text" className="w-full bg-transparent border-none outline-none text-xs font-bold" value={result.strategy} onChange={e => !disabled && onChange({...result, strategy: e.target.value})} placeholder="請輸入改善方針..." disabled={disabled} />
                </div>
             )}
          </div>
@@ -467,19 +467,19 @@ const ResultRow = ({ label, result, onChange }: { label: string, result: Assessm
    </tr>
 );
 
-const StatusPicker = ({ row, onChange }: { row: VisitRow, onChange: (field: string, val: any) => void }) => (
+const StatusPicker = ({ row, onChange, disabled }: { row: VisitRow, onChange: (field: string, val: any) => void, disabled?: boolean }) => (
    <div className="space-y-3 text-xs text-left">
       <div className="flex flex-wrap gap-2">
          {[KRStatus.AHEAD, KRStatus.ON_TRACK, KRStatus.DELAYED].map(s => (
-            <label key={s} className="flex items-center gap-1 cursor-pointer">
-               <input type="radio" checked={row.status === s} onChange={() => onChange('status', s)} /> {s}
+            <label key={s} className={`flex items-center gap-1 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+               <input type="radio" checked={row.status === s} onChange={() => !disabled && onChange('status', s)} disabled={disabled} /> {s}
             </label>
          ))}
       </div>
       {row.status === KRStatus.DELAYED && (
          <div className="space-y-1">
             <p className="font-black text-red-500">改進策略：</p>
-            <textarea className="w-full border border-red-200 rounded p-1 outline-none font-bold" value={row.strategy} onChange={e => onChange('strategy', e.target.value)} />
+            <textarea className="w-full border border-red-200 rounded p-1 outline-none font-bold" value={row.strategy} onChange={e => !disabled && onChange('strategy', e.target.value)} disabled={disabled} />
          </div>
       )}
    </div>
