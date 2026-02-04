@@ -153,6 +153,11 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                      <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-300" /> {record.date}</div>
                      <div className="flex items-center gap-2 text-amber-600"><Info size={14} /> 第 {record.frequency} 次訪視</div>
                   </div>
+                  {record.writer && (
+                    <div className="text-xs font-bold text-slate-400 pt-1">
+                      填寫人：{record.writer}
+                    </div>
+                  )}
                   <button onClick={() => handleOpenEdit(record)} className="w-full py-3 bg-slate-50 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
                     查看詳情 <ChevronRight size={16} />
                   </button>
@@ -265,7 +270,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                          </td>
                                       </tr>
                                    ))}
-                                   {/* 固定項 1 */}
+                                   {/* 固定項 1 - 輔導委員不顯示 */}
+                                   {!isCoach && (
                                    <tr>
                                       <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫捲動在地社區/部落參與人數</td>
                                       <td className="border-r border-slate-300 p-2">
@@ -275,7 +281,9 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                          <StatusPicker row={editingRecord.communityMobilization!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, [f]: v}})} disabled={!canEditForm} />
                                       </td>
                                    </tr>
-                                   {/* 固定項 2 */}
+                                   )}
+                                   {/* 固定項 2 - 輔導委員不顯示 */}
+                                   {!isCoach && (
                                    <tr>
                                       <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫串連社群個數</td>
                                       <td className="border-r border-slate-300 p-2">
@@ -285,6 +293,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                          <StatusPicker row={editingRecord.communityConnection!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, [f]: v}})} disabled={!canEditForm} />
                                       </td>
                                    </tr>
+                                   )}
                                 </tbody>
                              </table>
                           </td>
@@ -310,8 +319,13 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                 <tbody className="divide-y border-slate-200">
                                    <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} disabled={!canEditForm} />
                                    <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} disabled={!canEditForm} />
-                                   <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} disabled={!canEditForm} />
-                                   <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} disabled={!canEditForm} />
+                                   {/* 3 和 4 輔導委員不顯示 */}
+                                   {!isCoach && (
+                                     <>
+                                       <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} disabled={!canEditForm} />
+                                       <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} disabled={!canEditForm} />
+                                     </>
+                                   )}
                                 </tbody>
                              </table>
                           </td>
