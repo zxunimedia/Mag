@@ -146,8 +146,10 @@ const App: React.FC = () => {
   }
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
+  const isCoach = currentUser.role === UserRole.COACH;
 
-  const visibleProjects = isAdmin 
+  // 輔導委員可以看到所有計畫（但只能閱覽）
+  const visibleProjects = (isAdmin || isCoach) 
     ? projects 
     : projects.filter(p => p.unitId === currentUser.unitId || p.liaison.email === currentUser.email);
 
@@ -449,7 +451,8 @@ const App: React.FC = () => {
               selectedProjectId={selectedProject?.id} 
               initialReport={selectedReport}
               onBack={() => { setEditMode('NONE'); setSelectedReport(null); }} 
-              onSaveReport={handleSaveMonthlyReport} 
+              onSaveReport={handleSaveMonthlyReport}
+              userRole={currentUser.role}
             />
           ) : 
           
@@ -494,9 +497,12 @@ const App: React.FC = () => {
                            <FileDown size={20} /> 批次匯出 ({selectedReportIds.length})
                          </button>
                        )}
-                       <button onClick={() => { setEditMode('CONTROL'); setSelectedReport(null); }} className="bg-[#2D3E50] text-white px-8 py-3.5 rounded-2xl font-black shadow-xl hover:bg-slate-700 transition-all flex items-center gap-2">
-                          <Plus size={20} /> 新增填報
-                       </button>
+                       {/* 只有管理員和單位操作員可以新增月報，輔導委員只能閱覽 */}
+                       {!isCoach && (
+                         <button onClick={() => { setEditMode('CONTROL'); setSelectedReport(null); }} className="bg-[#2D3E50] text-white px-8 py-3.5 rounded-2xl font-black shadow-xl hover:bg-slate-700 transition-all flex items-center gap-2">
+                            <Plus size={20} /> 新增填報
+                         </button>
+                       )}
                      </div>
                    </div>
                    {/* 月報列表表格 ... */}
@@ -548,6 +554,7 @@ const App: React.FC = () => {
                                </td>
                                <td className="px-6 py-6 text-sm font-black text-emerald-600">${totalSpent.toLocaleString()}</td>
                                <td className="px-6 py-6 text-center flex justify-center gap-2">
+                                 {/* 輔導委員只能查看，不能編輯或刪除 */}
                                  <button 
                                     onClick={() => {
                                       setSelectedProject(proj!);
@@ -555,15 +562,19 @@ const App: React.FC = () => {
                                       setEditMode('CONTROL');
                                     }}
                                     className="p-3 text-slate-400 hover:bg-white hover:text-blue-500 hover:shadow-md rounded-xl transition-all"
+                                    title={isCoach ? "查看月報" : "編輯月報"}
                                  >
                                    <Pencil size={20} />
                                  </button>
-                                 <button 
-                                    onClick={() => handleDeleteMonthlyReport(mr.id!)}
-                                    className="p-3 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-md rounded-xl transition-all"
-                                 >
-                                   <Trash2 size={20} />
-                                 </button>
+                                 {/* 只有管理員可以刪除月報 */}
+                                 {isAdmin && (
+                                   <button 
+                                      onClick={() => handleDeleteMonthlyReport(mr.id!)}
+                                      className="p-3 text-slate-400 hover:bg-white hover:text-red-500 hover:shadow-md rounded-xl transition-all"
+                                   >
+                                     <Trash2 size={20} />
+                                   </button>
+                                 )}
                                </td>
                              </tr>
                            )

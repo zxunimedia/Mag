@@ -8,12 +8,13 @@ import {
   Settings,
   Mountain,
   PlusCircle,
-  DollarSign,
-  ClipboardCheck,
-  Users,
-  FileSpreadsheet,
+  Calculator,
+  CheckCircle,
+  MessageSquare,
+  RefreshCw,
   FileCheck
 } from 'lucide-react';
+import { UserRole } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,49 +23,69 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) => {
-  const isAdmin = userRole === 'MOC_ADMIN';
-  const isCoach = userRole === 'COACH';
-  
+  const isAdmin = userRole === UserRole.ADMIN;
+  const isCoach = userRole === UserRole.COACH;
+
+  // 輔導委員可以看到的選單：儀表板、計畫資料(閱覽)、月報填報(閱覽)、輔導紀錄、結案報告
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板總覽' },
-    { id: 'projects', icon: FolderKanban, label: '計畫清單' },
-    ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
-    ...(!isCoach ? [{ id: 'reports', icon: FileText, label: '月報填報' }] : []),
-    ...(!isCoach ? [{ id: 'grants', icon: DollarSign, label: '撥付進度' }] : []),
-    { id: 'coaching', icon: ClipboardCheck, label: '輔導紀錄' },
+    { id: 'projects', icon: FolderKanban, label: '1. 計畫資料' },
+    { id: 'reports', icon: FileText, label: '2. 月報填報' },
+    { id: 'coaching', icon: MessageSquare, label: '3. 輔導紀錄' },
+    // 撥付進度只有管理員和單位操作員可以看到，輔導委員不需要
+    ...(!isCoach ? [{ id: 'grants', icon: CheckCircle, label: '4. 撥付進度' }] : []),
+    // 管理員和輔導老師可以看到輔導委員結案報告產製
     ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導委員結案報告產製' }] : []),
-    ...(isAdmin ? [{ id: 'accounts', icon: Users, label: '帳號管理' }] : []),
+    // 只有管理員可以看到新案提案
+    ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
   ];
+
+  const handleForceRefresh = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('t', Date.now().toString());
+    window.location.href = url.toString();
+  };
 
   return (
     <div className="w-64 bg-[#2D3E50] text-white min-h-screen flex flex-col shadow-xl">
       <div className="p-6 flex items-center gap-3 border-b border-[#3E4E5E]">
-        <Mountain className="text-amber-400 w-8 h-8" />
-        <h1 className="font-bold text-lg leading-tight">文化部原村計畫<br/><span className="text-amber-400 text-sm">管考系統</span></h1>
+        <div className="bg-amber-400 p-1.5 rounded-lg">
+          <Mountain className="text-[#2D3E50] w-6 h-6" />
+        </div>
+        <div className="flex flex-col">
+          <h1 className="font-black text-lg leading-tight tracking-tighter">文化部原村計畫</h1>
+          <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Management System</span>
+        </div>
       </div>
       
-      <nav className="flex-1 mt-6">
+      <nav className="flex-1 mt-6 overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-6 py-4 transition-all ${
+            className={`w-full flex items-center gap-3 px-6 py-4 transition-all group ${
               activeTab === item.id 
                 ? 'bg-amber-600 text-white border-r-4 border-amber-300' 
-                : 'text-gray-300 hover:bg-[#3E4E5E] hover:text-white'
+                : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
             }`}
           >
-            <item.icon size={20} />
-            <span className="font-medium">{item.label}</span>
+            <item.icon size={20} className={`${activeTab === item.id ? 'text-white' : 'group-hover:text-amber-400'}`} />
+            <span className="font-black text-sm">{item.label}</span>
           </button>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-[#3E4E5E]">
-        <button className="flex items-center gap-3 px-2 py-2 text-gray-400 hover:text-white transition-colors w-full">
-          <Settings size={20} />
-          <span>系統設定</span>
+      <div className="p-6 border-t border-[#3E4E5E] space-y-4">
+        <button 
+          onClick={handleForceRefresh}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-700/50 hover:bg-slate-600 border border-slate-600 rounded-2xl text-xs font-black text-amber-400 transition-all active:scale-95"
+        >
+          <RefreshCw size={14} /> 強制重新整理
         </button>
+        <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">系統版本</p>
+           <p className="text-xs font-bold text-amber-500">v1.3.5 Stable</p>
+        </div>
       </div>
     </div>
   );
