@@ -215,7 +215,7 @@ export interface Project {
   liaison: ContactInfo;
   legalAddress: string;
   contactAddress: string;
-  siteType: '原鄉' | '都市';
+  siteTypes: ('原鄉' | '都市')[];  // 可多選
   sites: string[];
   appliedAmount: number;
   approvedAmount: number;

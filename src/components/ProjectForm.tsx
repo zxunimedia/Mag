@@ -26,7 +26,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     commissioner: emptyContact(),
     legalAddress: '',
     contactAddress: '',
-    siteType: '原鄉',
+    siteTypes: ['原鄉'],  // 預設原鄉，可多選
     sites: [''],
     appliedAmount: 0,
     approvedAmount: 0,
@@ -435,17 +435,43 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-sm font-bold text-slate-600">類型：</label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '原鄉'} onChange={() => setFormData({ ...formData, siteType: '原鄉', sites: [''] })} />
+                  <input 
+                    type="checkbox" 
+                    checked={formData.siteTypes?.includes('原鄉')} 
+                    onChange={(e) => {
+                      const newTypes = e.target.checked 
+                        ? [...(formData.siteTypes || []), '原鄉'] 
+                        : (formData.siteTypes || []).filter(t => t !== '原鄉');
+                      // 至少要選一個
+                      if (newTypes.length > 0) {
+                        setFormData({ ...formData, siteTypes: newTypes as ('原鄉' | '都市')[] });
+                      }
+                    }} 
+                    className="w-4 h-4 text-emerald-600 rounded"
+                  />
                   <span className="text-sm font-bold">原鄉</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={formData.siteType === '都市'} onChange={() => setFormData({ ...formData, siteType: '都市', sites: [''] })} />
+                  <input 
+                    type="checkbox" 
+                    checked={formData.siteTypes?.includes('都市')} 
+                    onChange={(e) => {
+                      const newTypes = e.target.checked 
+                        ? [...(formData.siteTypes || []), '都市'] 
+                        : (formData.siteTypes || []).filter(t => t !== '都市');
+                      // 至少要選一個
+                      if (newTypes.length > 0) {
+                        setFormData({ ...formData, siteTypes: newTypes as ('原鄉' | '都市')[] });
+                      }
+                    }} 
+                    className="w-4 h-4 text-emerald-600 rounded"
+                  />
                   <span className="text-sm font-bold">都市</span>
                 </label>
               </div>
               
               {/* 原鄉：顯示原住民鄉鎮下拉選單 */}
-              {formData.siteType === '原鄉' && (
+              {formData.siteTypes?.includes('原鄉') && (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-500 font-medium">{ALL_INDIGENOUS_TOWNSHIPS.length}個原住民鄉鎮市區</p>
                   {formData.sites?.map((site, idx) => (
@@ -475,7 +501,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               )}
               
               {/* 都市：顯示縣市+鄉鎮市區兩層下拉選單 */}
-              {formData.siteType === '都市' && (
+              {formData.siteTypes?.includes('都市') && (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-500 font-medium">請選擇縣市與鄉鎮市區</p>
                   {formData.sites?.map((site, idx) => {

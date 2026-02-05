@@ -32,7 +32,7 @@ const MOCK_PROJECTS: Project[] = [
     liaison: { name: '胡曉秘', title: '秘書', email: 'wang@atipd.tw' },
     legalAddress: '南投縣信義鄉...',
     contactAddress: '南投縣信義鄉...',
-    siteType: '原鄉',
+    siteTypes: ['原鄉'],
     village: '拔馬部落',
     sites: ['部落集會所'],
     appliedAmount: 934915,
