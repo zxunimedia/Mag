@@ -404,7 +404,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              <table className="w-full border-collapse">
                                 <tbody className="divide-y border-slate-200">
                                    <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} disabled={!canEditForm} />
-                                   <ResultRow label="2. 計畫執行內容" result={editingRecord.overallResults?.content} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} disabled={!canEditForm} />
+                                   <ResultRow label="2. 計畫執行情形" result={editingRecord.overallResults?.content} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} disabled={!canEditForm} />
                                    {/* 3 和 4 輔導委員不顯示 */}
                                    {!isCoach && (
                                      <>
@@ -544,15 +544,46 @@ const AttendeeRow = ({ label, name, checked, onChange, disabled }: any) => (
    </div>
 );
 
-const ResultRow = ({ label, result, onChange, disabled }: { label: string, result: AssessmentResult, onChange: (r: AssessmentResult) => void, disabled?: boolean }) => (
+// 根據欄位顯示不同的選項文字
+const getResultOptions = (label: string) => {
+  if (label.includes('計畫執行情形')) {
+    return [
+      { status: KRStatus.AHEAD, text: '比原計畫更好' },
+      { status: KRStatus.ON_TRACK, text: '與原計畫相符' },
+      { status: KRStatus.DELAYED, text: '與原計畫出現落差' }
+    ];
+  } else if (label.includes('執行紀錄完善')) {
+    return [
+      { status: KRStatus.AHEAD, text: '詳實卓越且具系統性' },
+      { status: KRStatus.ON_TRACK, text: '結構完整且合乎規範' },
+      { status: KRStatus.DELAYED, text: '尚待補強或僅具雛形' }
+    ];
+  } else if (label.includes('核銷憑證完備')) {
+    return [
+      { status: KRStatus.AHEAD, text: '精準完備' },
+      { status: KRStatus.ON_TRACK, text: '合規完整' },
+      { status: KRStatus.DELAYED, text: '尚可/待加強' }
+    ];
+  }
+  // 預設（計畫執行進度）
+  return [
+    { status: KRStatus.AHEAD, text: '進度超前' },
+    { status: KRStatus.ON_TRACK, text: '符合進度' },
+    { status: KRStatus.DELAYED, text: '進度落後' }
+  ];
+};
+
+const ResultRow = ({ label, result, onChange, disabled }: { label: string, result: AssessmentResult, onChange: (r: AssessmentResult) => void, disabled?: boolean }) => {
+  const options = getResultOptions(label);
+  return (
    <tr className="hover:bg-slate-50/50 transition-colors">
       <td className="p-4 font-black text-slate-600 w-1/3">{label}：</td>
       <td className="p-4">
          <div className="flex flex-col gap-3">
             <div className="flex gap-6">
-               {[KRStatus.AHEAD, KRStatus.ON_TRACK, KRStatus.DELAYED].map(s => (
-                  <label key={s} className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
-                     <input type="radio" checked={result.status === s} onChange={() => !disabled && onChange({...result, status: s})} disabled={disabled} /> {s}
+               {options.map(opt => (
+                  <label key={opt.status} className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                     <input type="radio" checked={result.status === opt.status} onChange={() => !disabled && onChange({...result, status: opt.status})} disabled={disabled} /> {opt.text}
                   </label>
                ))}
             </div>
@@ -565,7 +596,8 @@ const ResultRow = ({ label, result, onChange, disabled }: { label: string, resul
          </div>
       </td>
    </tr>
-);
+  );
+};
 
 const StatusPicker = ({ row, onChange, disabled }: { row: VisitRow, onChange: (field: string, val: any) => void, disabled?: boolean }) => (
    <div className="space-y-3 text-xs text-left">
