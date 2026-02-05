@@ -12,22 +12,26 @@ interface GrantProgressProps {
 // 各期檢核文件清單（根據客戶需求）
 const STAGE_DOCUMENTS: { [key: number]: { name: string; status: GrantDocStatus; checked: boolean; remark?: string; fileName?: string }[] } = {
   0: [ // 第一期
+    { name: '公文', status: '—' as GrantDocStatus, checked: false },
     { name: '補助契約書（一式四份，需用印）', status: '—' as GrantDocStatus, checked: false },
     { name: '切結書', status: '—' as GrantDocStatus, checked: false },
     { name: '第一期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   1: [ // 第二期
+    { name: '公文', status: '—' as GrantDocStatus, checked: false },
     { name: '修正對照表', status: '—' as GrantDocStatus, checked: false },
     { name: '修正計畫書', status: '—' as GrantDocStatus, checked: false },
     { name: '自行檢核表', status: '—' as GrantDocStatus, checked: false },
     { name: '第二期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   2: [ // 第三期
+    { name: '公文', status: '—' as GrantDocStatus, checked: false },
     { name: '期中成果報告書', status: '—' as GrantDocStatus, checked: false },
     { name: '第一期與第二期款經費明細表', status: '—' as GrantDocStatus, checked: false },
     { name: '第三期款收據', status: '—' as GrantDocStatus, checked: false }
   ],
   3: [ // 第四期
+    { name: '公文', status: '—' as GrantDocStatus, checked: false },
     { name: '全案期末成果報告書', status: '—' as GrantDocStatus, checked: false },
     { name: '全案執行經費明細表', status: '—' as GrantDocStatus, checked: false },
     { name: '第三期與第四期款經費明細表', status: '—' as GrantDocStatus, checked: false },
