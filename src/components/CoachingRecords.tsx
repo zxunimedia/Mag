@@ -308,7 +308,24 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              <AttendeeRow label="計畫代表人" name={selectedProject?.representative.name} checked={editingRecord.attendees?.representatives} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, representatives: !editingRecord.attendees?.representatives}})} disabled={!canEditForm} />
                              <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord.attendees?.liaison} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, liaison: !editingRecord.attendees?.liaison}})} disabled={!canEditForm} />
                              <div className="flex items-center gap-2">
-                                <span className="w-4 h-4 border border-slate-400" /> 其他人員：
+                                <input 
+                                  type="checkbox" 
+                                  className="w-4 h-4 accent-blue-500 cursor-pointer" 
+                                  checked={editingRecord.attendees?.othersChecked || false}
+                                  onChange={() => {
+                                    if (canEditForm) {
+                                      setEditingRecord({
+                                        ...editingRecord, 
+                                        attendees: {
+                                          ...editingRecord.attendees!, 
+                                          othersChecked: !editingRecord.attendees?.othersChecked
+                                        }
+                                      });
+                                    }
+                                  }}
+                                  disabled={!canEditForm}
+                                />
+                                <span className="text-sm font-bold text-slate-600">其他人員：</span>
                                 <input 
                                   type="text" 
                                   className="border-b border-slate-300 outline-none flex-1 px-2 py-1 focus:border-blue-500" 
@@ -320,7 +337,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                                         ...editingRecord, 
                                         attendees: {
                                           ...editingRecord.attendees!, 
-                                          others: e.target.value
+                                          others: e.target.value,
+                                          othersChecked: e.target.value.length > 0 ? true : editingRecord.attendees?.othersChecked
                                         }
                                       });
                                     }

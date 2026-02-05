@@ -124,6 +124,7 @@ export interface CoachingRecord {
     representatives: boolean;
     liaison: boolean;
     others: string;
+    othersChecked?: boolean;
   };
   overallResults: {
     progress: AssessmentResult;

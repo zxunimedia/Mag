@@ -68,17 +68,26 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
   };
 
   const currentGrants = (selectedProject?.grants && selectedProject.grants.length > 0) 
-    ? selectedProject.grants.map((grant, idx) => ({
-        ...grant,
-        // 確保每期都有正確的文件清單
-        documents: grant.documents && grant.documents.length > 0 
-          ? grant.documents.map((doc, dIdx) => ({
-              ...doc,
-              checked: doc.checked ?? false,
-              fileName: doc.fileName ?? ''
-            }))
-          : STAGE_DOCUMENTS[idx]?.map(doc => ({ ...doc })) || []
-      }))
+    ? selectedProject.grants.map((grant, idx) => {
+        // 取得標準文件清單
+        const standardDocs = STAGE_DOCUMENTS[idx] || [];
+        // 合併現有文件和標準文件（確保新增的文件會加入）
+        const existingDocNames = (grant.documents || []).map(d => d.name);
+        const mergedDocs = [
+          // 先加入標準文件中不存在的新文件（放在最前面）
+          ...standardDocs.filter(sd => !existingDocNames.includes(sd.name)).map(doc => ({ ...doc })),
+          // 再加入現有文件
+          ...(grant.documents || []).map((doc) => ({
+            ...doc,
+            checked: doc.checked ?? false,
+            fileName: doc.fileName ?? ''
+          }))
+        ];
+        return {
+          ...grant,
+          documents: mergedDocs.length > 0 ? mergedDocs : standardDocs.map(doc => ({ ...doc }))
+        };
+      })
     : getDefaultGrants();
 
   const handleUpdateGrant = (stageIdx: number, field: keyof GrantStage, value: any) => {
