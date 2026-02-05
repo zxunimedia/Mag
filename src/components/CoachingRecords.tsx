@@ -309,7 +309,24 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                              <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord.attendees?.liaison} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, liaison: !editingRecord.attendees?.liaison}})} disabled={!canEditForm} />
                              <div className="flex items-center gap-2">
                                 <span className="w-4 h-4 border border-slate-400" /> 其他人員：
-                                <input type="text" className="border-b border-slate-300 outline-none w-1/2" value={editingRecord.attendees?.others} onChange={e => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, others: e.target.value}})} disabled={!canEditForm} />
+                                <input 
+                                  type="text" 
+                                  className="border-b border-slate-300 outline-none flex-1 px-2 py-1 focus:border-blue-500" 
+                                  placeholder="請輸入其他出席人員姓名..."
+                                  value={editingRecord.attendees?.others || ''} 
+                                  onChange={e => {
+                                    if (canEditForm) {
+                                      setEditingRecord({
+                                        ...editingRecord, 
+                                        attendees: {
+                                          ...editingRecord.attendees!, 
+                                          others: e.target.value
+                                        }
+                                      });
+                                    }
+                                  }} 
+                                  disabled={!canEditForm} 
+                                />
                              </div>
                           </td>
                        </tr>
