@@ -12,7 +12,7 @@ import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
 import AccountManagement from './components/AccountManagement';
-import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus } from './types';
+import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus, GrantDocStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus, FileDown, CheckSquare, Square } from 'lucide-react';
 
 const MOCK_PROJECTS: Project[] = [
@@ -65,9 +65,10 @@ const MOCK_PROJECTS: Project[] = [
       { 
         stage: '第 1 期撥款', 
         documents: [
-          { name: '切結書', status: '已完成' },
-          { name: '契約書', status: '已完成' },
-          { name: '第一期收據', status: '已完成' }
+          { name: '公文', status: '—' as GrantDocStatus, checked: false },
+          { name: '補助契約書（一式四份，需用印）', status: '—' as GrantDocStatus, checked: false },
+          { name: '切結書', status: '已完成' as GrantDocStatus, checked: true },
+          { name: '第一期款收據', status: '已完成' as GrantDocStatus, checked: true }
         ], 
         submissionDate: '115年1月31日', 
         deadline: '115年2月15日', 
