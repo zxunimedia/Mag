@@ -62,23 +62,45 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
     
     // 根據角色決定紀錄類型
     const recordType: 'coach' | 'team' = isCoach ? 'coach' : 'team';
+
+    // 自動帶入資料
+    const location = selectedProject?.siteTypes && selectedProject?.sites 
+      ? `${selectedProject.siteTypes.join('/')}: ${selectedProject.sites.join('、')}`
+      : '';
+    
+    const period = selectedProject?.startDate && selectedProject?.endDate
+      ? `${selectedProject.startDate} 至 ${selectedProject.endDate}`
+      : '';
+
+    let okrSummary = '';
+    if (selectedProject?.visions) {
+      okrSummary = selectedProject.visions.map(v => {
+        const objectives = v.objectives.map(o => {
+          const krs = o.keyResults.map(k => `  - ${k.description} (目標: ${k.targetValue})`).join('\n');
+          return `* ${o.title}\n${krs}`;
+        }).join('\n');
+        return `【願景: ${v.title}】\n${objectives}`;
+      }).join('\n\n');
+    }
+
+    const coachName = isCoach ? '輔導老師' : ''; // 這裡理想上應從當前使用者名稱帶入，目前先預設文字
     
     setEditingRecord({
       id: `cr-${Date.now()}`,
       projectId: selectedProjectId,
       serialNumber: serial,
-      location: '',
+      location: location,
       frequency: (filteredRecords.length + 1).toString(),
       method: '實地訪視',
-      writer: '',
+      writer: isCoach ? '輔導老師' : '管理員',
       date: new Date().toISOString().split('T')[0],
       startTime: '09:00',
       endTime: '12:00',
       recordType,
       attendees: { commissioners: false, staff: false, representatives: false, liaison: false, others: '' },
       // 輔導老師版專用欄位
-      coachAttendees: { coach: '', unitStaff: '', otherStaff: '' },
-      planSummary: { period: '', okrSummary: '', reviewMechanism: '' },
+      coachAttendees: { coach: coachName, unitStaff: '', otherStaff: '' },
+      planSummary: { period: period, okrSummary: okrSummary, reviewMechanism: '' },
       progressStatus: '符合',
       coachObservation: { executionStatus: '', teamSuggestion: '', mocSuggestion: '' },
       overallResults: { progress: initAssessment(), content: initAssessment(), records: initAssessment(), vouchers: initAssessment() },
