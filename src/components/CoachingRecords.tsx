@@ -10,18 +10,12 @@ interface CoachingRecordsProps {
   onSaveRecord: (record: CoachingRecord) => void;
   onDeleteRecord?: (recordId: string) => void;
   currentUserRole: UserRole;
-  currentUserUnitId?: string;  // 操作人員的單位 ID，用於過濾可見紀錄
+  currentUserUnitId?: string;
 }
 
 const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRecords, onSaveRecord, onDeleteRecord, currentUserRole, currentUserUnitId }) => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  // 計畫指派功能：
-  // - 管理員：可以看到所有計畫
-  // - 輔導老師：只能看到被指派的計畫
-  // - 操作人員：只能看到被指派的計畫
-  const visibleProjects = currentUserRole === UserRole.ADMIN
-    ? projects 
-    : projects;  // 過濾已在 App.tsx 中完成，這裡直接使用傳入的 projects
+  const visibleProjects = projects;
   const [selectedProjectId, setSelectedProjectId] = useState(visibleProjects[0]?.id || '');
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Partial<CoachingRecord> | null>(null);
@@ -30,21 +24,30 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isCoach = currentUserRole === UserRole.COACH;
   const isOperator = currentUserRole === UserRole.OPERATOR;
-  // canEditForm 會在 editingRecord 變化時重新計算
-  // 管理員和輔導老師只能編輯自己填寫的紀錄，操作人員只能編輯「受輔導團隊意見回應」
   const selectedProject = visibleProjects.find(p => p.id === selectedProjectId);
   const filteredRecords = coachingRecords.filter(r => r.projectId === selectedProjectId);
 
   const initAssessment = (): AssessmentResult => ({ status: KRStatus.ON_TRACK, strategy: '' });
   const initVisitRow = (id: string, workItem: string = ''): VisitRow => ({ id, workItem, opinion: '', status: KRStatus.ON_TRACK, strategy: '' });
 
+  // 判斷紀錄類型
+  const getRecordType = (record: CoachingRecord | Partial<CoachingRecord>): 'coach' | 'team' => {
+    if (record.recordType) return record.recordType;
+    // 向下相容：根據 writer 判斷
+    if (!record.writer) return 'team';
+    const writerLower = record.writer.toLowerCase();
+    if (writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@')) return 'coach';
+    return 'team';
+  };
+
+  const isCoachRecord = (record: CoachingRecord | Partial<CoachingRecord>) => getRecordType(record) === 'coach';
+  const isTeamRecord = (record: CoachingRecord | Partial<CoachingRecord>) => getRecordType(record) === 'team';
+
   const handleOpenNew = () => {
-    if (!isAdmin && !isCoach) return;  // 管理員和輔導老師都可以新增訪視紀錄
-    // 使用計畫編號生成序號，格式：計畫編號-流水號
+    if (!isAdmin && !isCoach) return;
     const projectCode = selectedProject?.projectCode || selectedProjectId;
     const serial = `${projectCode}-${(filteredRecords.length + 1).toString().padStart(3, '0')}`;
     
-    // 從計畫的願景中取得所有關鍵結果作為工作項目
     const keyResults: VisitRow[] = [];
     if (selectedProject?.visions) {
       selectedProject.visions.forEach(vision => {
@@ -55,8 +58,10 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
         });
       });
     }
-    // 如果沒有關鍵結果，預設兩個空白項目
     const visitContents = keyResults.length > 0 ? keyResults : [initVisitRow('1'), initVisitRow('2')];
+    
+    // 根據角色決定紀錄類型
+    const recordType: 'coach' | 'team' = isCoach ? 'coach' : 'team';
     
     setEditingRecord({
       id: `cr-${Date.now()}`,
@@ -69,7 +74,13 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       date: new Date().toISOString().split('T')[0],
       startTime: '09:00',
       endTime: '12:00',
+      recordType,
       attendees: { commissioners: false, staff: false, representatives: false, liaison: false, others: '' },
+      // 輔導老師版專用欄位
+      coachAttendees: { coach: '', unitStaff: '', otherStaff: '' },
+      planSummary: { period: '', okrSummary: '', reviewMechanism: '' },
+      progressStatus: '符合',
+      coachObservation: { executionStatus: '', teamSuggestion: '', mocSuggestion: '' },
       overallResults: { progress: initAssessment(), content: initAssessment(), records: initAssessment(), vouchers: initAssessment() },
       visitContents: visitContents,
       communityMobilization: initVisitRow('cm', '全計畫捲動在地社區/部落參與人數'),
@@ -80,37 +91,14 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   };
 
   const handleOpenEdit = (record: CoachingRecord) => {
-    // 允許所有人查看輔導紀錄
     setEditingRecord({...record});
     setShowModal(true);
   };
 
-  // 判斷紀錄是否是輔導老師填寫的
-  const isCoachRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
-    if (!record.writer) return false;
-    const writerLower = record.writer.toLowerCase();
-    return writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@');
-  };
-  
-  // 判斷紀錄是否是輔導團隊（管理員）填寫的
-  const isTeamRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
-    if (!record.writer) return false;
-    const writerLower = record.writer.toLowerCase();
-    return writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@') || writerLower.includes('團隊') || writerLower.includes('team');
-  };
-
-  // 判斷當前用戶是否可以編輯這筆紀錄
-  // 輔導老師：可編輯自己的紀錄，可看輔導團隊的（唯讀）
-  // 輔導團隊（管理員）：可編輯自己的紀錄，可看輔導老師的（唯讀）
-  // 操作人員：可看兩種紀錄（唯讀），只能在下方寫回應
   const canEditRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
-    // 操作人員只能編輯「受輔導團隊意見回應」，不能編輯其他欄位
     if (isOperator) return false;
-    // 新增紀錄時（沒有 writer），允許編輯
     if (!record.writer) return true;
-    // 輔導老師只能編輯輔導老師填寫的紀錄
     if (isCoach && isCoachRecord(record)) return true;
-    // 管理員（輔導團隊）只能編輯輔導團隊填寫的紀錄
     if (isAdmin && isTeamRecord(record)) return true;
     return false;
   };
@@ -127,6 +115,461 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       setShowModal(false);
     }
   };
+
+  // ============ 輔導老師版 Modal ============
+  const renderCoachModal = (canEditForm: boolean) => (
+    <div className="bg-white border-2 border-slate-300 shadow-xl overflow-hidden max-w-4xl mx-auto">
+      <table className="w-full border-collapse border-slate-300 text-sm font-bold">
+        <tbody>
+          {/* 表格標題 */}
+          <tr>
+            <td colSpan={4} className="text-center py-4 bg-white border-b-2 border-slate-300">
+              <div className="text-lg font-black text-slate-700">文化部「原住民村落文化發展計畫」</div>
+              <div className="text-2xl font-black tracking-[0.2em] text-slate-700 mt-1">輔導老師訪視紀錄表</div>
+            </td>
+          </tr>
+          {/* 訪視時間 & 訪視地點 */}
+          <tr>
+            <td className="record-header w-28">訪視時間</td>
+            <td className="record-cell">
+              <input type="date" className="record-input" value={editingRecord?.date} onChange={e => canEditForm && setEditingRecord({...editingRecord!, date: e.target.value})} disabled={!canEditForm} />
+              <div className="mt-1">
+                <input type="time" className="inline-input" value={editingRecord?.startTime} onChange={e => canEditForm && setEditingRecord({...editingRecord!, startTime: e.target.value})} disabled={!canEditForm} />
+                {' 至 '}
+                <input type="time" className="inline-input" value={editingRecord?.endTime} onChange={e => canEditForm && setEditingRecord({...editingRecord!, endTime: e.target.value})} disabled={!canEditForm} />
+              </div>
+            </td>
+            <td className="record-header w-28">訪視地點</td>
+            <td className="record-cell">
+              <input type="text" className="record-input" value={editingRecord?.location} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫地點..." disabled={!canEditForm} />
+            </td>
+          </tr>
+          {/* 受訪單位 & 計畫名稱 */}
+          <tr>
+            <td className="record-header">受訪單位</td>
+            <td className="record-cell">{selectedProject?.executingUnit}</td>
+            <td className="record-header">計畫名稱</td>
+            <td className="record-cell">{selectedProject?.name}</td>
+          </tr>
+          {/* 計畫執行地點 */}
+          <tr>
+            <td className="record-header">計畫執行地點</td>
+            <td colSpan={3} className="record-cell">
+              <input type="text" className="record-input" value={editingRecord?.location || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫計畫執行地點..." disabled={!canEditForm} />
+            </td>
+          </tr>
+          {/* 參與人員 */}
+          <tr>
+            <td className="record-header">參與人員</td>
+            <td colSpan={3} className="record-cell space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-slate-600 w-28 shrink-0">輔導老師：</span>
+                <input type="text" className="record-input flex-1 border-b border-slate-300" value={editingRecord?.coachAttendees?.coach || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachAttendees: {...editingRecord!.coachAttendees!, coach: e.target.value}})} placeholder="請填寫輔導老師姓名" disabled={!canEditForm} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-slate-600 w-28 shrink-0">受訪單位人員：</span>
+                <input type="text" className="record-input flex-1 border-b border-slate-300" value={editingRecord?.coachAttendees?.unitStaff || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachAttendees: {...editingRecord!.coachAttendees!, unitStaff: e.target.value}})} placeholder="請填寫受訪單位人員" disabled={!canEditForm} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-slate-600 w-28 shrink-0">其他單位人員：</span>
+                <input type="text" className="record-input flex-1 border-b border-slate-300" value={editingRecord?.coachAttendees?.otherStaff || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachAttendees: {...editingRecord!.coachAttendees!, otherStaff: e.target.value}})} placeholder="請填寫其他單位人員" disabled={!canEditForm} />
+              </div>
+            </td>
+          </tr>
+          {/* 計畫摘要（本部窗口協助填寫） */}
+          <tr>
+            <td className="record-header">計畫摘要<br/><span className="text-[10px] text-slate-400 font-normal">(本部窗口協助填寫)</span></td>
+            <td colSpan={3} className="record-cell p-0">
+              <table className="w-full border-collapse">
+                <tbody>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 w-32 border-r border-slate-200">一、計畫期程</td>
+                    <td className="p-3">
+                      <input type="text" className="record-input" value={editingRecord?.planSummary?.period || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, planSummary: {...editingRecord!.planSummary!, period: e.target.value}})} placeholder="請填寫計畫期程..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 border-r border-slate-200">二、計畫OKR簡表</td>
+                    <td className="p-3">
+                      <textarea className="record-input min-h-[80px]" value={editingRecord?.planSummary?.okrSummary || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, planSummary: {...editingRecord!.planSummary!, okrSummary: e.target.value}})} placeholder="請填寫計畫OKR簡表..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 border-r border-slate-200">三、定期檢討機制</td>
+                    <td className="p-3">
+                      <textarea className="record-input min-h-[60px]" value={editingRecord?.planSummary?.reviewMechanism || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, planSummary: {...editingRecord!.planSummary!, reviewMechanism: e.target.value}})} placeholder="請填寫定期檢討機制..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {/* 輔導老師觀察紀錄及提供本部建議 */}
+          <tr>
+            <td className="record-header">輔導老師<br/>觀察紀錄<br/>及提供<br/>本部建議</td>
+            <td colSpan={3} className="record-cell p-0">
+              <table className="w-full border-collapse">
+                <tbody>
+                  {/* 進度達成情形 */}
+                  <tr className="border-b border-slate-200">
+                    <td colSpan={2} className="p-4">
+                      <div className="font-black text-slate-700 mb-3">本案進度達成情形（請於訪視時勾選）：</div>
+                      <div className="flex gap-6 flex-wrap">
+                        {(['嚴重落後', '稍微落後', '符合', '超前進度'] as const).map(status => (
+                          <label key={status} className={`flex items-center gap-2 ${!canEditForm ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                            <input type="radio" checked={editingRecord?.progressStatus === status} onChange={() => canEditForm && setEditingRecord({...editingRecord!, progressStatus: status})} disabled={!canEditForm} />
+                            <span className={`font-bold ${status === '嚴重落後' ? 'text-red-600' : status === '稍微落後' ? 'text-amber-600' : status === '符合' ? 'text-green-600' : 'text-blue-600'}`}>{status}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                  {/* 一、計畫執行狀況說明 */}
+                  <tr className="border-b border-slate-200">
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 w-32 border-r border-slate-200 align-top">一、計畫執行狀況說明</td>
+                    <td className="p-3">
+                      <textarea className="record-input min-h-[100px]" value={editingRecord?.coachObservation?.executionStatus || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachObservation: {...editingRecord!.coachObservation!, executionStatus: e.target.value}})} placeholder="請說明計畫執行狀況..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                  {/* 二、提供團隊建議 */}
+                  <tr className="border-b border-slate-200">
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 border-r border-slate-200 align-top">二、提供團隊建議<br/><span className="text-[10px] text-slate-400 font-normal">(含適時引介相關資源)</span></td>
+                    <td className="p-3">
+                      <textarea className="record-input min-h-[100px]" value={editingRecord?.coachObservation?.teamSuggestion || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachObservation: {...editingRecord!.coachObservation!, teamSuggestion: e.target.value}})} placeholder="請提供團隊建議..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                  {/* 三、提供本部建議 */}
+                  <tr>
+                    <td className="p-3 bg-slate-50 font-black text-slate-600 border-r border-slate-200 align-top">三、提供本部建議</td>
+                    <td className="p-3">
+                      <textarea className="record-input min-h-[100px]" value={editingRecord?.coachObservation?.mocSuggestion || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, coachObservation: {...editingRecord!.coachObservation!, mocSuggestion: e.target.value}})} placeholder="請提供本部建議..." disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {/* 現場照片 */}
+          <tr>
+            <td className="record-header">現場照片</td>
+            <td colSpan={3} className="record-cell min-h-[200px]">
+              <div className="flex flex-col items-center justify-center gap-4 py-6 text-slate-400">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full px-4">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-400 transition-all">
+                      {editingRecord?.photos?.[i] ? (
+                        <>
+                          <img src={editingRecord.photos[i]} className="w-full h-full object-cover" alt={`現場照片 ${i+1}`} />
+                          {canEditForm && (
+                            <button 
+                              onClick={() => {
+                                const newPhotos = [...(editingRecord.photos || [])];
+                                newPhotos.splice(i, 1);
+                                setEditingRecord({...editingRecord, photos: newPhotos});
+                              }}
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        canEditForm ? (
+                          <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
+                            <Camera size={28} className="text-slate-300" />
+                            <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                            <input 
+                              type="file" accept="image/*" className="hidden" 
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    const newPhotos = [...(editingRecord?.photos || [])];
+                                    newPhotos[i] = ev.target?.result as string;
+                                    setEditingRecord({...editingRecord!, photos: newPhotos});
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <Camera size={28} className="text-slate-300" />
+                            <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {canEditForm && (
+                  <p className="text-xs font-black text-amber-600 flex items-center gap-2">
+                    <AlertTriangle size={14} /> 至少上傳3張照片
+                  </p>
+                )}
+              </div>
+            </td>
+          </tr>
+          {/* 受輔導團隊意見回應 */}
+          <tr>
+            <td className="record-header" colSpan={1}>受輔導團隊<br/>意見回應</td>
+            <td className="record-cell" colSpan={3}>
+              <textarea 
+                className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
+                placeholder="請受輔導團隊填寫對此次輔導紀錄的意見回應..."
+                value={editingRecord?.operatorFeedback || ''}
+                onChange={e => isOperator && setEditingRecord({...editingRecord!, operatorFeedback: e.target.value})}
+                disabled={!isOperator}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // ============ 輔導團隊版 Modal（原有版本） ============
+  const renderTeamModal = (canEditForm: boolean) => (
+    <div className="bg-white border-2 border-slate-300 shadow-xl overflow-hidden max-w-4xl mx-auto">
+      <table className="w-full border-collapse border-slate-300 text-sm font-bold">
+        <tbody>
+          {/* 表格標題 */}
+          <tr>
+            <td colSpan={6} className="text-center py-4 bg-white border-b-2 border-slate-300 text-2xl font-black tracking-[0.2em] text-slate-700">訪視輔導紀錄表</td>
+          </tr>
+          {/* 單位名稱 & 計畫名稱 */}
+          <tr>
+            <td className="record-header w-32">受輔導團隊</td>
+            <td className="record-cell">{selectedProject?.executingUnit}</td>
+            <td className="record-header w-32">計畫名稱</td>
+            <td colSpan={3} className="record-cell">{selectedProject?.name}</td>
+          </tr>
+          {/* 輔導地點 & 輔導次數 */}
+          <tr>
+            <td className="record-header">輔導地點</td>
+            <td className="record-cell">
+              <input type="text" className="record-input" value={editingRecord?.location} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫地點..." disabled={!canEditForm} />
+            </td>
+            <td className="record-header">輔導次數</td>
+            <td colSpan={3} className="record-cell">第 <input type="text" className="inline-input w-12" value={editingRecord?.frequency} onChange={e => canEditForm && setEditingRecord({...editingRecord!, frequency: e.target.value})} disabled={!canEditForm} /> 次</td>
+          </tr>
+          {/* 輔導方式 & 填寫人 */}
+          <tr>
+            <td className="record-header">輔導方式</td>
+            <td className="record-cell">
+              <div className="flex gap-4">
+                {['實地訪視', '視訊', '電話', '其他'].map(m => (
+                  <label key={m} className="flex items-center gap-1 cursor-pointer">
+                    <input type="radio" checked={editingRecord?.method === m} onChange={() => canEditForm && setEditingRecord({...editingRecord!, method: m as any})} disabled={!canEditForm} /> {m}
+                  </label>
+                ))}
+              </div>
+            </td>
+            <td className="record-header">填寫人</td>
+            <td colSpan={3} className="record-cell">
+              <input type="text" className="record-input" value={editingRecord?.writer} onChange={e => canEditForm && setEditingRecord({...editingRecord!, writer: e.target.value})} disabled={!canEditForm} />
+            </td>
+          </tr>
+          {/* 輔導日期 & 輔導時間 */}
+          <tr>
+            <td className="record-header">輔導日期</td>
+            <td className="record-cell">
+              <input type="date" className="record-input" value={editingRecord?.date} onChange={e => canEditForm && setEditingRecord({...editingRecord!, date: e.target.value})} disabled={!canEditForm} />
+            </td>
+            <td className="record-header">輔導時間</td>
+            <td colSpan={3} className="record-cell">
+              <input type="time" className="inline-input" value={editingRecord?.startTime} onChange={e => canEditForm && setEditingRecord({...editingRecord!, startTime: e.target.value})} disabled={!canEditForm} /> 
+              {' 至 '}
+              <input type="time" className="inline-input" value={editingRecord?.endTime} onChange={e => canEditForm && setEditingRecord({...editingRecord!, endTime: e.target.value})} disabled={!canEditForm} />
+            </td>
+          </tr>
+          {/* 出席人員 */}
+          <tr>
+            <td className="record-header">出席人員</td>
+            <td colSpan={5} className="record-cell space-y-2">
+              <AttendeeRow label="輔導委員" name={selectedProject?.commissioner.name} checked={editingRecord?.attendees?.commissioners} onChange={() => canEditForm && setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, commissioners: !editingRecord?.attendees?.commissioners}})} disabled={!canEditForm} />
+              <AttendeeRow label="主責人員" name={selectedProject?.chiefStaff.name} checked={editingRecord?.attendees?.staff} onChange={() => canEditForm && setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, staff: !editingRecord?.attendees?.staff}})} disabled={!canEditForm} />
+              <AttendeeRow label="計畫代表人" name={selectedProject?.representative.name} checked={editingRecord?.attendees?.representatives} onChange={() => canEditForm && setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, representatives: !editingRecord?.attendees?.representatives}})} disabled={!canEditForm} />
+              <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord?.attendees?.liaison} onChange={() => canEditForm && setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, liaison: !editingRecord?.attendees?.liaison}})} disabled={!canEditForm} />
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" className="w-4 h-4 accent-blue-500 cursor-pointer" 
+                  checked={editingRecord?.attendees?.othersChecked || false}
+                  onChange={() => {
+                    if (canEditForm) {
+                      setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, othersChecked: !editingRecord?.attendees?.othersChecked}});
+                    }
+                  }}
+                  disabled={!canEditForm}
+                />
+                <span className="text-sm font-bold text-slate-600">其他人員：</span>
+                <input 
+                  type="text" className="border-b border-slate-300 outline-none flex-1 px-2 py-1 focus:border-blue-500" 
+                  placeholder="請輸入其他出席人員姓名..."
+                  value={editingRecord?.attendees?.others || ''} 
+                  onChange={e => {
+                    if (canEditForm) {
+                      setEditingRecord({...editingRecord!, attendees: {...editingRecord!.attendees!, others: e.target.value, othersChecked: e.target.value.length > 0 ? true : editingRecord?.attendees?.othersChecked}});
+                    }
+                  }} 
+                  disabled={!canEditForm} 
+                />
+              </div>
+            </td>
+          </tr>
+          {/* 個別工作項目訪視內容 */}
+          <tr>
+            <td className="record-header">個別工作項目<br/>訪視內容</td>
+            <td colSpan={5} className="record-cell p-0">
+              <table className="w-full border-collapse text-center">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-300">
+                    <th className="px-4 py-2 border-r border-slate-300 w-1/4">工作項目</th>
+                    <th className="px-4 py-2 border-r border-slate-300">訪視意見</th>
+                    <th className="px-4 py-2 w-1/4">進度總結</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y border-slate-200">
+                  {editingRecord?.visitContents?.map((row, idx) => (
+                    <tr key={row.id}>
+                      <td className="border-r border-slate-300 p-2">
+                        <input type="text" className="record-input text-center" value={row.workItem} onChange={e => canEditForm && updateVisitContent(row.id, 'workItem', e.target.value)} placeholder={`項目 ${idx+1}`} disabled={!canEditForm} />
+                      </td>
+                      <td className="border-r border-slate-300 p-2">
+                        <textarea className="record-input min-h-[60px]" value={row.opinion} onChange={e => canEditForm && updateVisitContent(row.id, 'opinion', e.target.value)} disabled={!canEditForm} />
+                      </td>
+                      <td className="p-2">
+                        <StatusPicker row={row} onChange={(f, v) => canEditForm && updateVisitContent(row.id, f as any, v)} disabled={!canEditForm} />
+                      </td>
+                    </tr>
+                  ))}
+                  {/* 固定項 1 */}
+                  <tr>
+                    <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫捲動在地社區/部落參與人數</td>
+                    <td className="border-r border-slate-300 p-2">
+                      <textarea className="record-input" value={editingRecord?.communityMobilization?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord!, communityMobilization: {...editingRecord!.communityMobilization!, opinion: e.target.value}})} disabled={!canEditForm} />
+                    </td>
+                    <td className="p-2">
+                      <StatusPicker row={editingRecord?.communityMobilization!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord!, communityMobilization: {...editingRecord!.communityMobilization!, [f]: v}})} disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                  {/* 固定項 2 */}
+                  <tr>
+                    <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫串連社群個數</td>
+                    <td className="border-r border-slate-300 p-2">
+                      <textarea className="record-input" value={editingRecord?.communityConnection?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord!, communityConnection: {...editingRecord!.communityConnection!, opinion: e.target.value}})} disabled={!canEditForm} />
+                    </td>
+                    <td className="p-2">
+                      <StatusPicker row={editingRecord?.communityConnection!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord!, communityConnection: {...editingRecord!.communityConnection!, [f]: v}})} disabled={!canEditForm} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {/* 整體訪視重點 */}
+          <tr>
+            <td className="record-header">整體訪視重點</td>
+            <td colSpan={5} className="record-cell">
+              <textarea className="record-input min-h-[100px]" value={editingRecord?.keyPoints || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, keyPoints: e.target.value})} placeholder="請輸入本次訪視的重點事項..." disabled={!canEditForm} />
+            </td>
+          </tr>
+          {/* 整體訪視結果 */}
+          <tr>
+            <td className="record-header">整體訪視結果</td>
+            <td colSpan={5} className="record-cell p-0">
+              <table className="w-full border-collapse">
+                <tbody className="divide-y border-slate-200">
+                  <ResultRow label="1. 計畫執行進度" result={editingRecord?.overallResults?.progress!} onChange={(r) => canEditForm && setEditingRecord({...editingRecord!, overallResults: {...editingRecord!.overallResults!, progress: r}})} disabled={!canEditForm} />
+                  <ResultRow label="2. 計畫執行情形" result={editingRecord?.overallResults?.content!} onChange={(r) => canEditForm && setEditingRecord({...editingRecord!, overallResults: {...editingRecord!.overallResults!, content: r}})} disabled={!canEditForm} />
+                  <ResultRow label="3. 執行紀錄完善" result={editingRecord?.overallResults?.records!} onChange={(r) => canEditForm && setEditingRecord({...editingRecord!, overallResults: {...editingRecord!.overallResults!, records: r}})} disabled={!canEditForm} />
+                  <ResultRow label="4. 核銷憑證完備" result={editingRecord?.overallResults?.vouchers!} onChange={(r) => canEditForm && setEditingRecord({...editingRecord!, overallResults: {...editingRecord!.overallResults!, vouchers: r}})} disabled={!canEditForm} />
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {/* 訪視照片 */}
+          <tr>
+            <td className="record-header">訪視照片</td>
+            <td colSpan={5} className="record-cell min-h-[200px]">
+              <div className="flex flex-col items-center justify-center gap-4 py-6 text-slate-400">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full px-4">
+                  {[0, 1, 2, 3].map(i => (
+                    <div key={i} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-400 transition-all">
+                      {editingRecord?.photos?.[i] ? (
+                        <>
+                          <img src={editingRecord.photos[i]} className="w-full h-full object-cover" alt={`訪視照片 ${i+1}`} />
+                          {canEditForm && (
+                            <button 
+                              onClick={() => {
+                                const newPhotos = [...(editingRecord.photos || [])];
+                                newPhotos.splice(i, 1);
+                                setEditingRecord({...editingRecord, photos: newPhotos});
+                              }}
+                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        canEditForm ? (
+                          <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
+                            <Camera size={28} className="text-slate-300" />
+                            <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                            <input 
+                              type="file" accept="image/*" className="hidden" 
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    const newPhotos = [...(editingRecord?.photos || [])];
+                                    newPhotos[i] = ev.target?.result as string;
+                                    setEditingRecord({...editingRecord!, photos: newPhotos});
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <Camera size={28} className="text-slate-300" />
+                            <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {canEditForm && (
+                  <p className="text-xs font-black text-amber-600 flex items-center gap-2">
+                    <AlertTriangle size={14} /> 至少上傳四張照片
+                  </p>
+                )}
+              </div>
+            </td>
+          </tr>
+          {/* 受輔導團隊意見回應 */}
+          <tr>
+            <td className="record-header" colSpan={2}>受輔導團隊意見回應</td>
+            <td className="record-cell" colSpan={4}>
+              <textarea 
+                className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
+                placeholder="請受輔導團隊填寫對此次輔導紀錄的意見回應..."
+                value={editingRecord?.operatorFeedback || ''}
+                onChange={e => isOperator && setEditingRecord({...editingRecord!, operatorFeedback: e.target.value})}
+                disabled={!isOperator}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500 px-4">
@@ -203,34 +646,32 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
         </div>
       </div>
 
-      {/* 復刻截圖的表格編輯 Modal */}
+      {/* Modal */}
       {showModal && editingRecord && (() => {
-        // 動態計算當前紀錄是否可編輯
+        const recordType = getRecordType(editingRecord);
         const canEditForm = (() => {
-          // 操作人員只能編輯「受輔導團隊意見回應」，不能編輯其他欄位
           if (isOperator) return false;
-          // 新增紀錄時（沒有 id 或 id 是新的），允許編輯
           if (!editingRecord.id || editingRecord.id.startsWith('cr-')) {
-            // 檢查是否是新建的紀錄（尚未儲存）
             const existingRecord = coachingRecords.find(r => r.id === editingRecord.id);
             if (!existingRecord) return true;
           }
-          // 管理員和輔導老師只能編輯自己填寫的紀錄
-          // 如果紀錄沒有 writer 欄位，則允許編輯（向下相容）
           if (!editingRecord.writer) return true;
-          // 檢查填寫人是否是當前用戶的角色
-          const writerLower = editingRecord.writer.toLowerCase();
-          if (isAdmin && (writerLower.includes('管理') || writerLower.includes('admin') || writerLower.includes('mag@'))) return true;
-          if (isCoach && (writerLower.includes('輔導') || writerLower.includes('coach') || writerLower.includes('coach@'))) return true;
+          if (isAdmin && isTeamRecord(editingRecord)) return true;
+          if (isCoach && isCoachRecord(editingRecord)) return true;
           return false;
         })();
+        
+        const modalTitle = recordType === 'coach' ? '輔導老師訪視紀錄表' : '訪視輔導紀錄表';
         
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-5xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             <div className="px-10 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div className="flex items-center gap-4">
-                <h3 className="text-xl font-black text-slate-800 tracking-tight">訪視輔導紀錄表</h3>
+                <h3 className="text-xl font-black text-slate-800 tracking-tight">{modalTitle}</h3>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${recordType === 'coach' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {recordType === 'coach' ? '輔導老師版' : '輔導團隊版'}
+                </span>
                 {isOperator && (
                   <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
                     唯讀模式 - 僅可填寫「受輔導團隊意見回應」
@@ -246,275 +687,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
             </div>
 
             <div className="flex-1 overflow-y-auto p-10 bg-slate-100/30">
-              <div className="bg-white border-2 border-slate-300 shadow-xl overflow-hidden max-w-4xl mx-auto">
-                 <table className="w-full border-collapse border-slate-300 text-sm font-bold">
-                    <tbody>
-                       {/* 表格標題 */}
-                       <tr>
-                          <td colSpan={6} className="text-center py-4 bg-white border-b-2 border-slate-300 text-2xl font-black tracking-[0.2em] text-slate-700">訪視輔導紀錄表</td>
-                       </tr>
-                       {/* 單位名稱 & 計畫名稱 */}
-                       <tr>
-                          <td className="record-header w-32">受輔導團隊</td>
-                          <td className="record-cell">{selectedProject?.executingUnit}</td>
-                          <td className="record-header w-32">計畫名稱</td>
-                          <td colSpan={3} className="record-cell">{selectedProject?.name}</td>
-                       </tr>
-                       {/* 輔導地點 & 輔導次數 */}
-                       <tr>
-                          <td className="record-header">輔導地點</td>
-                          <td className="record-cell">
-                             <input type="text" className="record-input" value={editingRecord.location} onChange={e => canEditForm && setEditingRecord({...editingRecord, location: e.target.value})} placeholder="請填寫地點..." disabled={!canEditForm} />
-                          </td>
-                          <td className="record-header">輔導次數</td>
-                          <td colSpan={3} className="record-cell">第 <input type="text" className="inline-input w-12" value={editingRecord.frequency} onChange={e => canEditForm && setEditingRecord({...editingRecord, frequency: e.target.value})} disabled={!canEditForm} /> 次</td>
-                       </tr>
-                       {/* 輔導方式 & 填寫人 */}
-                       <tr>
-                          <td className="record-header">輔導方式</td>
-                          <td className="record-cell">
-                             <div className="flex gap-4">
-                                {['實地訪視', '視訊', '電話', '其他'].map(m => (
-                                   <label key={m} className="flex items-center gap-1 cursor-pointer">
-                                      <input type="radio" checked={editingRecord.method === m} onChange={() => canEditForm && setEditingRecord({...editingRecord, method: m as any})} disabled={!canEditForm} /> {m}
-                                   </label>
-                                ))}
-                             </div>
-                          </td>
-                          <td className="record-header">填寫人</td>
-                          <td colSpan={3} className="record-cell">
-                             <input type="text" className="record-input" value={editingRecord.writer} onChange={e => canEditForm && setEditingRecord({...editingRecord, writer: e.target.value})} disabled={!canEditForm} />
-                          </td>
-                       </tr>
-                       {/* 輔導日期 & 輔導時間 */}
-                       <tr>
-                          <td className="record-header">輔導日期</td>
-                          <td className="record-cell">
-                             <input type="date" className="record-input" value={editingRecord.date} onChange={e => canEditForm && setEditingRecord({...editingRecord, date: e.target.value})} disabled={!canEditForm} />
-                          </td>
-                          <td className="record-header">輔導時間</td>
-                          <td colSpan={3} className="record-cell">
-                             <input type="time" className="inline-input" value={editingRecord.startTime} onChange={e => canEditForm && setEditingRecord({...editingRecord, startTime: e.target.value})} disabled={!canEditForm} /> 
-                             至 
-                             <input type="time" className="inline-input" value={editingRecord.endTime} onChange={e => canEditForm && setEditingRecord({...editingRecord, endTime: e.target.value})} disabled={!canEditForm} />
-                          </td>
-                       </tr>
-                       {/* 出席人員 */}
-                       <tr>
-                          <td className="record-header">出席人員</td>
-                          <td colSpan={5} className="record-cell space-y-2">
-                             <AttendeeRow label="輔導委員" name={selectedProject?.commissioner.name} checked={editingRecord.attendees?.commissioners} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, commissioners: !editingRecord.attendees?.commissioners}})} disabled={!canEditForm} />
-                             <AttendeeRow label="主責人員" name={selectedProject?.chiefStaff.name} checked={editingRecord.attendees?.staff} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, staff: !editingRecord.attendees?.staff}})} disabled={!canEditForm} />
-                             <AttendeeRow label="計畫代表人" name={selectedProject?.representative.name} checked={editingRecord.attendees?.representatives} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, representatives: !editingRecord.attendees?.representatives}})} disabled={!canEditForm} />
-                             <AttendeeRow label="計畫聯絡人" name={selectedProject?.liaison.name} checked={editingRecord.attendees?.liaison} onChange={() => canEditForm && setEditingRecord({...editingRecord, attendees: {...editingRecord.attendees!, liaison: !editingRecord.attendees?.liaison}})} disabled={!canEditForm} />
-                             <div className="flex items-center gap-2">
-                                <input 
-                                  type="checkbox" 
-                                  className="w-4 h-4 accent-blue-500 cursor-pointer" 
-                                  checked={editingRecord.attendees?.othersChecked || false}
-                                  onChange={() => {
-                                    if (canEditForm) {
-                                      setEditingRecord({
-                                        ...editingRecord, 
-                                        attendees: {
-                                          ...editingRecord.attendees!, 
-                                          othersChecked: !editingRecord.attendees?.othersChecked
-                                        }
-                                      });
-                                    }
-                                  }}
-                                  disabled={!canEditForm}
-                                />
-                                <span className="text-sm font-bold text-slate-600">其他人員：</span>
-                                <input 
-                                  type="text" 
-                                  className="border-b border-slate-300 outline-none flex-1 px-2 py-1 focus:border-blue-500" 
-                                  placeholder="請輸入其他出席人員姓名..."
-                                  value={editingRecord.attendees?.others || ''} 
-                                  onChange={e => {
-                                    if (canEditForm) {
-                                      setEditingRecord({
-                                        ...editingRecord, 
-                                        attendees: {
-                                          ...editingRecord.attendees!, 
-                                          others: e.target.value,
-                                          othersChecked: e.target.value.length > 0 ? true : editingRecord.attendees?.othersChecked
-                                        }
-                                      });
-                                    }
-                                  }} 
-                                  disabled={!canEditForm} 
-                                />
-                             </div>
-                          </td>
-                       </tr>
-                       {/* 1. 個別工作項目訪視內容 (原訪視內容) - 所有角色都可看，但操作人員和輔導委員唯讀 */}
-                       <tr>
-                          <td className="record-header">個別工作項目<br/>訪視內容</td>
-                          <td colSpan={5} className="record-cell p-0">
-                             <table className="w-full border-collapse text-center">
-                                <thead>
-                                   <tr className="bg-slate-50 border-b border-slate-300">
-                                      <th className="px-4 py-2 border-r border-slate-300 w-1/4">工作項目</th>
-                                      <th className="px-4 py-2 border-r border-slate-300">訪視意見</th>
-                                      <th className="px-4 py-2 w-1/4">進度總結</th>
-                                   </tr>
-                                </thead>
-                                <tbody className="divide-y border-slate-200">
-                                   {editingRecord.visitContents?.map((row, idx) => (
-                                      <tr key={row.id}>
-                                         <td className="border-r border-slate-300 p-2">
-                                            <input type="text" className="record-input text-center" value={row.workItem} onChange={e => canEditForm && updateVisitContent(row.id, 'workItem', e.target.value)} placeholder={`項目 ${idx+1}`} disabled={!canEditForm} />
-                                         </td>
-                                         <td className="border-r border-slate-300 p-2">
-                                            <textarea className="record-input min-h-[60px]" value={row.opinion} onChange={e => canEditForm && updateVisitContent(row.id, 'opinion', e.target.value)} disabled={!canEditForm} />
-                                         </td>
-                                         <td className="p-2">
-                                            <StatusPicker row={row} onChange={(f, v) => canEditForm && updateVisitContent(row.id, f as any, v)} disabled={!canEditForm} />
-                                         </td>
-                                      </tr>
-                                   ))}
-                                   {/* 固定項 1 - 輔導委員不顯示 */}
-                                   {!isCoach && (
-                                   <tr>
-                                      <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫捲動在地社區/部落參與人數</td>
-                                      <td className="border-r border-slate-300 p-2">
-                                         <textarea className="record-input" value={editingRecord.communityMobilization?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, opinion: e.target.value}})} disabled={!canEditForm} />
-                                      </td>
-                                      <td className="p-2">
-                                         <StatusPicker row={editingRecord.communityMobilization!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityMobilization: {...editingRecord.communityMobilization!, [f]: v}})} disabled={!canEditForm} />
-                                      </td>
-                                   </tr>
-                                   )}
-                                   {/* 固定項 2 - 輔導委員不顯示 */}
-                                   {!isCoach && (
-                                   <tr>
-                                      <td className="border-r border-slate-300 p-4 bg-slate-50 font-black">全計畫串連社群個數</td>
-                                      <td className="border-r border-slate-300 p-2">
-                                         <textarea className="record-input" value={editingRecord.communityConnection?.opinion} onChange={e => canEditForm && setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, opinion: e.target.value}})} disabled={!canEditForm} />
-                                      </td>
-                                      <td className="p-2">
-                                         <StatusPicker row={editingRecord.communityConnection!} onChange={(f, v) => canEditForm && setEditingRecord({...editingRecord, communityConnection: {...editingRecord.communityConnection!, [f]: v}})} disabled={!canEditForm} />
-                                      </td>
-                                   </tr>
-                                   )}
-                                </tbody>
-                             </table>
-                          </td>
-                       </tr>
-                       {/* 2. 整體訪視重點 (原訪視重點) */}
-                       <tr>
-                          <td className="record-header">整體訪視重點</td>
-                          <td colSpan={5} className="record-cell">
-                             <textarea 
-                               className="record-input min-h-[100px]" 
-                               value={editingRecord.keyPoints || ''} 
-                               onChange={e => canEditForm && setEditingRecord({...editingRecord, keyPoints: e.target.value})} 
-                               placeholder="請輸入本次訪視的重點事項..."
-                               disabled={!canEditForm}
-                             />
-                          </td>
-                       </tr>
-                       {/* 3. 整體訪視結果 - 所有角色都可看，但操作人員和輔導委員唯讀 */}
-                       <tr>
-                          <td className="record-header">整體訪視結果</td>
-                          <td colSpan={5} className="record-cell p-0">
-                             <table className="w-full border-collapse">
-                                <tbody className="divide-y border-slate-200">
-                                   <ResultRow label="1. 計畫執行進度" result={editingRecord.overallResults?.progress} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, progress: r}})} disabled={!canEditForm} />
-                                   <ResultRow label="2. 計畫執行情形" result={editingRecord.overallResults?.content} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, content: r}})} disabled={!canEditForm} />
-                                   {/* 3 和 4 輔導委員不顯示 */}
-                                   {!isCoach && (
-                                     <>
-                                       <ResultRow label="3. 執行紀錄完善" result={editingRecord.overallResults?.records} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, records: r}})} disabled={!canEditForm} />
-                                       <ResultRow label="4. 核銷憑證完備" result={editingRecord.overallResults?.vouchers} onChange={(r) => canEditForm && setEditingRecord({...editingRecord, overallResults: {...editingRecord.overallResults!, vouchers: r}})} disabled={!canEditForm} />
-                                     </>
-                                   )}
-                                </tbody>
-                             </table>
-                          </td>
-                       </tr>
-                       {/* 訪視照片 */}
-                       <tr>
-                          <td className="record-header">訪視照片</td>
-                          <td colSpan={5} className="record-cell min-h-[200px]">
-                             <div className="flex flex-col items-center justify-center gap-4 py-6 text-slate-400">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full px-4">
-                                   {[0, 1, 2, 3].map(i => (
-                                      <div key={i} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-400 transition-all">
-                                         {editingRecord.photos?.[i] ? (
-                                            <>
-                                              <img src={editingRecord.photos[i]} className="w-full h-full object-cover" alt={`訪視照片 ${i+1}`} />
-                                              {canEditForm && (
-                                                <button 
-                                                  onClick={() => {
-                                                    const newPhotos = [...(editingRecord.photos || [])];
-                                                    newPhotos.splice(i, 1);
-                                                    setEditingRecord({...editingRecord, photos: newPhotos});
-                                                  }}
-                                                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                                >
-                                                  <X size={14} />
-                                                </button>
-                                              )}
-                                            </>
-                                         ) : (
-                                            canEditForm ? (
-                                              <label className="cursor-pointer flex flex-col items-center gap-2 p-4">
-                                                <Camera size={28} className="text-slate-300" />
-                                                <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
-                                                <input 
-                                                  type="file" 
-                                                  accept="image/*" 
-                                                  className="hidden" 
-                                                  onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                      const reader = new FileReader();
-                                                      reader.onload = (ev) => {
-                                                        const newPhotos = [...(editingRecord.photos || [])];
-                                                        newPhotos[i] = ev.target?.result as string;
-                                                        setEditingRecord({...editingRecord, photos: newPhotos});
-                                                      };
-                                                      reader.readAsDataURL(file);
-                                                    }
-                                                  }}
-                                                />
-                                              </label>
-                                            ) : (
-                                              <div className="flex flex-col items-center gap-2 p-4">
-                                                <Camera size={28} className="text-slate-300" />
-                                                <span className="text-xs font-bold text-slate-400">照片 {i+1}</span>
-                                              </div>
-                                            )
-                                         )}
-                                      </div>
-                                   ))}
-                                </div>
-                                {canEditForm && (
-                                  <p className="text-xs font-black text-amber-600 flex items-center gap-2">
-                                    <AlertTriangle size={14} /> 至少上傳四張照片
-                                  </p>
-                                )}
-                             </div>
-                          </td>
-                       </tr>
-                       {/* 受輔導團隊意見回應 - 只有操作人員可以編輯，輔導委員和管理員唯讀 */}
-                       <tr>
-                          <td className="record-header" colSpan={2}>受輔導團隊意見回應</td>
-                          <td className="record-cell" colSpan={4}>
-                             <textarea 
-                                className="w-full min-h-[100px] bg-amber-50/50 border border-amber-200 rounded-xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-amber-500/20 resize-none"
-                                placeholder="請受輔導團隊填寫對此次輔導紀錄的意見回應..."
-                                value={editingRecord.operatorFeedback || ''}
-                                onChange={e => isOperator && setEditingRecord({...editingRecord, operatorFeedback: e.target.value})}
-                                disabled={!isOperator}
-                             />
-                          </td>
-                       </tr>
-                    </tbody>
-                 </table>
-              </div>
+              {recordType === 'coach' ? renderCoachModal(canEditForm) : renderTeamModal(canEditForm)}
             </div>
 
             <div className="p-8 border-t border-slate-100 bg-white flex gap-4">
@@ -583,7 +756,6 @@ const getResultOptions = (label: string) => {
       { status: KRStatus.DELAYED, text: '尚可/待加強' }
     ];
   }
-  // 預設（計畫執行進度）
   return [
     { status: KRStatus.AHEAD, text: '進度超前' },
     { status: KRStatus.ON_TRACK, text: '符合進度' },

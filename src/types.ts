@@ -118,6 +118,8 @@ export interface CoachingRecord {
   date: string;
   startTime: string;
   endTime: string;
+  // 訪視紀錄表類型：'coach' = 輔導老師版, 'team' = 輔導團隊版
+  recordType?: 'coach' | 'team';
   attendees: {
     commissioners: boolean;
     staff: boolean;
@@ -125,6 +127,23 @@ export interface CoachingRecord {
     liaison: boolean;
     others: string;
     othersChecked?: boolean;
+  };
+  // 輔導老師版專用欄位
+  coachAttendees?: {
+    coach: string;           // 輔導老師
+    unitStaff: string;       // 受訪單位人員
+    otherStaff: string;      // 其他單位人員
+  };
+  planSummary?: {
+    period: string;          // 計畫期程
+    okrSummary: string;      // 計畫OKR簡表
+    reviewMechanism: string; // 定期檢討機制
+  };
+  progressStatus?: '嚴重落後' | '稍微落後' | '符合' | '超前進度';
+  coachObservation?: {
+    executionStatus: string;     // 一、計畫執行狀況說明
+    teamSuggestion: string;      // 二、提供團隊建議（含適時引介相關資源）
+    mocSuggestion: string;       // 三、提供本部建議
   };
   overallResults: {
     progress: AssessmentResult;
