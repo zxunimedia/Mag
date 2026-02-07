@@ -180,7 +180,12 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                           <td className="record-header">計畫執行地點</td>
                           <td colSpan={5} className="record-cell">{selectedProject?.implementationLocation || '未設定'}</td>
                        </tr>
-                       {/* 輔導地點 & 輔導次數 */}
+                       {/* 輔導老師 */}
+                       <tr>
+                          <td className="record-header">輔導老師</td>
+                          <td colSpan={5} className="record-cell">{selectedProject?.commissioner?.name || '未設定'}</td>
+                       </tr>
+                       {/* 訪視地點 & 輔導次數 */}
                        <tr>
                           <td className="record-header">訪視地點</td>
                           <td className="record-cell">
