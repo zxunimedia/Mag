@@ -234,6 +234,7 @@ export interface Project {
   budget: number;
   implementationLocation?: string;  // 實施地點
   okrSummary?: string;              // OKR 目標簡表
+  coachName?: string;               // 輔導老師姓名
 }
 
 export interface Report {
