@@ -175,9 +175,14 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                           <td className="record-header w-32">計畫名稱</td>
                           <td colSpan={3} className="record-cell">{selectedProject?.name}</td>
                        </tr>
+                       {/* 計畫執行地點 */}
+                       <tr>
+                          <td className="record-header">計畫執行地點</td>
+                          <td colSpan={5} className="record-cell">{selectedProject?.implementationLocation || '未設定'}</td>
+                       </tr>
                        {/* 輔導地點 & 輔導次數 */}
                        <tr>
-                          <td className="record-header">輔導地點</td>
+                          <td className="record-header">訪視地點</td>
                           <td className="record-cell">
                              <input type="text" className="record-input" value={editingRecord.location} onChange={e => setEditingRecord({...editingRecord, location: e.target.value})} placeholder="請填寫地點..." />
                           </td>

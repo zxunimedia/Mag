@@ -232,6 +232,8 @@ export interface Project {
   description: string;
   spent: number;
   budget: number;
+  implementationLocation?: string;  // 實施地點
+  okrSummary?: string;              // OKR 目標簡表
 }
 
 export interface Report {
