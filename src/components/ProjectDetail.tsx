@@ -128,8 +128,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
             </div>
             <div className="text-sm">
               <span className="text-gray-500">執行期間：</span>
-              <span className="font-bold text-gray-800">{project.period || `${project.startDate} ~ ${project.endDate}`}</span>
-            </div>
+                <span className="font-bold text-gray-800">{project.period || `${project.startDate} ~ ${project.endDate}`}</span>
+              </div>
+              <div className="text-sm">
+                <span className="text-gray-500">計畫實施地點：</span>
+                <span className="font-bold text-gray-800">{project.sites?.join(", ")}</span>
+              </div>
           </div>
           <div className="space-y-3">
             <div className="text-sm">
