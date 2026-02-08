@@ -132,7 +132,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
               </div>
               <div className="text-sm">
                 <span className="text-gray-500">計畫實施地點：</span>
-                <span className="font-bold text-gray-800">{project.sites?.join(", ")}</span>
+                <span className="font-bold text-gray-800">{project.sites?.filter(s => s && (s.includes('鄉') || s.includes('區'))).join(", ")}</span>
               </div>
           </div>
           <div className="space-y-3">
