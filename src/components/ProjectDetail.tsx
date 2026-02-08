@@ -34,32 +34,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <MessageSquare className="text-blue-500" size={20} />
-              計畫摘要與進度日誌
-            </h3>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              {project.description}
-            </p>
-            
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-800 border-b pb-2">執行日誌</h4>
-              {reports.filter(r => r.projectId === project.id).map(report => (
-                <div key={report.id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <h5 className="font-bold text-gray-700">{report.title}</h5>
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Calendar size={12} /> {report.date}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">{report.content}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className="lg:col-span-2 space-y     </div>
 
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
