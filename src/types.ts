@@ -34,9 +34,15 @@ export enum UserRole {
 
 export interface User {
   id: string;
+  name?: string;  // 用戶名稱
   email: string;
+  password?: string;  // 密碼（僅在創建時使用）
   role: UserRole;
-  unitId?: string; 
+  unitId?: string;
+  unitName?: string;  // 單位名稱
+  assignedProjectIds?: string[];  // 分配給該用戶的計畫 ID 列表
+  createdAt?: string;  // 帳號創建時間
+  lastLogin?: string;  // 最後登錄時間
 }
 
 export interface ContactInfo {

@@ -634,7 +634,7 @@ const App: React.FC = () => {
                 <AccountManagement currentUser={currentUser} projects={projects} />
               )}
               {activeTab === 'permissions' && isAdmin && (
-                <PermissionManagement onBack={() => setActiveTab('dashboard')} />
+                <PermissionManagement projects={projects} onBack={() => setActiveTab('dashboard')} />
               )}
             </>
           )}

@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole } from '../types';
-import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft } from 'lucide-react';
+import { User, UserRole, Project } from '../types';
+import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2, Circle } from 'lucide-react';
 
 interface PermissionManagementProps {
+  projects: Project[];
   onBack: () => void;
 }
 
-interface UserPermission extends User {
+interface UserWithProjects extends User {
   isEditing?: boolean;
 }
 
-const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) => {
-  const [users, setUsers] = useState<UserPermission[]>([]);
+const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, onBack }) => {
+  const [users, setUsers] = useState<UserWithProjects[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: '',
     email: '',
+    password: '',
     role: UserRole.OPERATOR,
     unitId: '',
-    unitName: ''
+    unitName: '',
+    assignedProjectIds: []
   });
 
   // 從 localStorage 加載用戶列表
@@ -28,14 +32,16 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
       setUsers(JSON.parse(stored));
     } else {
       // 預設用戶
-      const defaultUsers: UserPermission[] = [
+      const defaultUsers: UserWithProjects[] = [
         {
           id: 'admin-1',
           name: '管理員',
           email: 'admin@moc.gov.tw',
           role: UserRole.ADMIN,
           unitId: 'MOC',
-          unitName: '文化部'
+          unitName: '文化部',
+          assignedProjectIds: [],
+          createdAt: new Date().toISOString()
         },
         {
           id: 'coach-1',
@@ -43,7 +49,9 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
           email: 'coach@moc.gov.tw',
           role: UserRole.COACH,
           unitId: 'MOC',
-          unitName: '文化部'
+          unitName: '文化部',
+          assignedProjectIds: ['1'],
+          createdAt: new Date().toISOString()
         },
         {
           id: 'operator-1',
@@ -51,7 +59,9 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
           email: 'operator@moc.gov.tw',
           role: UserRole.OPERATOR,
           unitId: 'unit-101',
-          unitName: '拔馬部落文化發展協會'
+          unitName: '拔馬部落文化發展協會',
+          assignedProjectIds: ['1'],
+          createdAt: new Date().toISOString()
         }
       ];
       setUsers(defaultUsers);
@@ -60,30 +70,32 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
   }, []);
 
   // 保存用戶到 localStorage
-  const saveUsers = (updatedUsers: UserPermission[]) => {
+  const saveUsers = (updatedUsers: UserWithProjects[]) => {
     localStorage.setItem('mag_users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
   };
 
   // 添加新用戶
   const handleAddUser = () => {
-    if (!newUser.name || !newUser.email) {
-      alert('請填寫用戶名稱和信箱');
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      alert('請填寫用戶名稱、信箱和密碼');
       return;
     }
 
-    const user: UserPermission = {
+    const user: UserWithProjects = {
       id: `user-${Date.now()}`,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role || UserRole.OPERATOR,
       unitId: newUser.unitId || '',
-      unitName: newUser.unitName || ''
+      unitName: newUser.unitName || '',
+      assignedProjectIds: newUser.assignedProjectIds || [],
+      createdAt: new Date().toISOString()
     };
 
     const updated = [...users, user];
     saveUsers(updated);
-    setNewUser({ name: '', email: '', role: UserRole.OPERATOR, unitId: '', unitName: '' });
+    setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
     setIsAddingUser(false);
   };
 
@@ -106,6 +118,30 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
       const updated = users.filter(u => u.id !== id);
       saveUsers(updated);
     }
+  };
+
+  // 切換計畫分配
+  const handleToggleProjectAssignment = (userId: string, projectId: string) => {
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        const assigned = u.assignedProjectIds || [];
+        const newAssigned = assigned.includes(projectId)
+          ? assigned.filter(id => id !== projectId)
+          : [...assigned, projectId];
+        return { ...u, assignedProjectIds: newAssigned };
+      }
+      return u;
+    });
+    saveUsers(updatedUsers);
+  };
+
+  // 新增用戶時切換計畫
+  const handleToggleNewUserProject = (projectId: string) => {
+    const assigned = newUser.assignedProjectIds || [];
+    const newAssigned = assigned.includes(projectId)
+      ? assigned.filter(id => id !== projectId)
+      : [...assigned, projectId];
+    setNewUser({ ...newUser, assignedProjectIds: newAssigned });
   };
 
   const getRoleLabel = (role: UserRole) => {
@@ -142,7 +178,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
         </button>
         <div>
           <h2 className="text-2xl font-bold text-gray-800">權限管理</h2>
-          <p className="text-gray-500">管理系統用戶和權限設置</p>
+          <p className="text-gray-500">管理系統用戶、角色和計畫分配</p>
         </div>
       </div>
 
@@ -164,7 +200,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
         {isAddingUser && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-bold text-gray-800 mb-4">新增用戶</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="text-sm font-bold text-gray-600 mb-2 block">用戶名稱 *</label>
                 <input
@@ -183,6 +219,16 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   className="form-input w-full"
                   placeholder="輸入信箱"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-gray-600 mb-2 block">密碼 *</label>
+                <input
+                  type="password"
+                  value={newUser.password || ''}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="form-input w-full"
+                  placeholder="輸入密碼"
                 />
               </div>
               <div>
@@ -207,7 +253,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
                   placeholder="輸入單位代碼"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <label className="text-sm font-bold text-gray-600 mb-2 block">單位名稱</label>
                 <input
                   type="text"
@@ -218,7 +264,32 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
                 />
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
+
+            {/* 計畫分配 */}
+            <div className="mb-4">
+              <label className="text-sm font-bold text-gray-600 mb-2 block">分配計畫</label>
+              <div className="bg-white p-3 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                {projects.length === 0 ? (
+                  <p className="text-gray-500 text-sm">暫無計畫</p>
+                ) : (
+                  projects.map(project => (
+                    <label key={project.id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 px-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={(newUser.assignedProjectIds || []).includes(project.id)}
+                        onChange={() => handleToggleNewUserProject(project.id)}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {project.name} ({project.unitName})
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
               <button
                 onClick={handleAddUser}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
@@ -235,106 +306,168 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
           </div>
         )}
 
-        {/* 用戶表格 */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-bold text-gray-600">用戶名稱</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-600">信箱</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-600">角色</th>
-                <th className="px-4 py-3 text-left font-bold text-gray-600">單位</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+        {/* 用戶列表 */}
+        <div className="space-y-3">
+          {users.map((user) => (
+            <div key={user.id} className="border border-gray-200 rounded-lg overflow-hidden">
+              {/* 用戶基本信息 */}
+              <div className="bg-gray-50 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4 flex-1">
+                  <button
+                    onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    <ChevronDown 
+                      size={20} 
+                      className={`transition-transform ${expandedUserId === user.id ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-800">{user.name}</h4>
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <Mail size={14} className="text-gray-400" />
+                      {user.email}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(user.role)}`}>
+                    {getRoleLabel(user.role)}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditUser(user.id)}
+                    className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(user.id)}
+                    className="p-2 text-red-600 hover:bg-red-100 rounded"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 展開詳情 */}
+              {expandedUserId === user.id && (
+                <div className="p-4 border-t border-gray-200 bg-white">
                   {user.isEditing ? (
-                    <>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={user.name}
-                          onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, name: e.target.value } : u))}
-                          className="form-input w-full text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="email"
-                          value={user.email}
-                          onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, email: e.target.value } : u))}
-                          className="form-input w-full text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={user.role}
-                          onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, role: e.target.value as UserRole } : u))}
-                          className="form-input w-full text-sm"
-                        >
-                          <option value={UserRole.OPERATOR}>操作人員</option>
-                          <option value={UserRole.COACH}>輔導委員</option>
-                          <option value={UserRole.ADMIN}>管理員</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={user.unitName || ''}
-                          onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, unitName: e.target.value } : u))}
-                          className="form-input w-full text-sm"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">
+                    // 編輯模式
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-bold text-gray-600 mb-2 block">用戶名稱</label>
+                          <input
+                            type="text"
+                            value={user.name || ''}
+                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, name: e.target.value } : u))}
+                            className="form-input w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-bold text-gray-600 mb-2 block">信箱</label>
+                          <input
+                            type="email"
+                            value={user.email}
+                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, email: e.target.value } : u))}
+                            className="form-input w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-bold text-gray-600 mb-2 block">角色</label>
+                          <select
+                            value={user.role}
+                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, role: e.target.value as UserRole } : u))}
+                            className="form-input w-full"
+                          >
+                            <option value={UserRole.OPERATOR}>操作人員</option>
+                            <option value={UserRole.COACH}>輔導委員</option>
+                            <option value={UserRole.ADMIN}>管理員</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-bold text-gray-600 mb-2 block">單位名稱</label>
+                          <input
+                            type="text"
+                            value={user.unitName || ''}
+                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, unitName: e.target.value } : u))}
+                            className="form-input w-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 計畫分配編輯 */}
+                      <div>
+                        <label className="text-sm font-bold text-gray-600 mb-2 block">分配計畫</label>
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                          {projects.length === 0 ? (
+                            <p className="text-gray-500 text-sm">暫無計畫</p>
+                          ) : (
+                            projects.map(project => (
+                              <label key={project.id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-white px-2 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={(user.assignedProjectIds || []).includes(project.id)}
+                                  onChange={() => handleToggleProjectAssignment(user.id, project.id)}
+                                  className="w-4 h-4 text-blue-600 rounded"
+                                />
+                                <span className="text-sm text-gray-700">
+                                  {project.name} ({project.unitName})
+                                </span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
                         <button
                           onClick={() => handleSaveEdit(user.id, user)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded font-bold hover:bg-green-200 mr-2"
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
                         >
-                          <Save size={14} /> 保存
+                          <Save size={16} /> 保存
                         </button>
                         <button
                           onClick={() => handleEditUser(user.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-gray-200 text-gray-700 rounded font-bold hover:bg-gray-300"
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400"
                         >
-                          <X size={14} /> 取消
+                          <X size={16} /> 取消
                         </button>
-                      </td>
-                    </>
+                      </div>
+                    </div>
                   ) : (
-                    <>
-                      <td className="px-4 py-3 font-medium text-gray-800">{user.name}</td>
-                      <td className="px-4 py-3 text-gray-600 flex items-center gap-1">
-                        <Mail size={14} className="text-gray-400" />
-                        {user.email}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(user.role)}`}>
-                          {getRoleLabel(user.role)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{user.unitName || '—'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleEditUser(user.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded font-bold hover:bg-blue-200 mr-2"
-                        >
-                          <Edit2 size={14} /> 編輯
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded font-bold hover:bg-red-200"
-                        >
-                          <Trash2 size={14} /> 刪除
-                        </button>
-                      </td>
-                    </>
+                    // 查看模式
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600">單位：<span className="font-bold text-gray-800">{user.unitName || '—'}</span></p>
+                        <p className="text-sm text-gray-600">創建時間：<span className="font-bold text-gray-800">{user.createdAt ? new Date(user.createdAt).toLocaleString('zh-TW') : '—'}</span></p>
+                        <p className="text-sm text-gray-600">最後登錄：<span className="font-bold text-gray-800">{user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-TW') : '未登錄'}</span></p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-600 mb-2">分配計畫：</p>
+                        {(user.assignedProjectIds || []).length === 0 ? (
+                          <p className="text-sm text-gray-500">未分配任何計畫</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {(user.assignedProjectIds || []).map(projectId => {
+                              const project = projects.find(p => p.id === projectId);
+                              return project ? (
+                                <div key={projectId} className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-2 rounded">
+                                  <CheckCircle2 size={14} className="text-blue-600" />
+                                  {project.name}
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
 
         {users.length === 0 && (
@@ -354,14 +487,14 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
             <ul className="text-sm text-gray-600 space-y-1">
               <li>✓ 查看所有計畫</li>
               <li>✓ 管理用戶權限</li>
-              <li>✓ 查看所有報告</li>
+              <li>✓ 分配計畫給用戶</li>
               <li>✓ 系統設置</li>
             </ul>
           </div>
           <div className="bg-white p-4 rounded-lg">
             <h4 className="font-bold text-blue-700 mb-2">👨‍🏫 輔導委員</h4>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>✓ 查看指派計畫</li>
+              <li>✓ 查看分配計畫</li>
               <li>✓ 填寫輔導紀錄</li>
               <li>✓ 查看月報</li>
               <li>✓ 產製結案報告</li>
@@ -370,7 +503,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ onBack }) =
           <div className="bg-white p-4 rounded-lg">
             <h4 className="font-bold text-green-700 mb-2">👨‍💻 操作人員</h4>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>✓ 查看單位計畫</li>
+              <li>✓ 查看分配計畫</li>
               <li>✓ 填寫月報</li>
               <li>✓ 查看撥付進度</li>
               <li>✓ 管理計畫資料</li>
