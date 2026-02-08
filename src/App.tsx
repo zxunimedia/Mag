@@ -12,6 +12,7 @@ import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
 import AccountManagement from './components/AccountManagement';
+import PermissionManagement from './components/PermissionManagement';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus, GrantDocStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus, FileDown, CheckSquare, Square } from 'lucide-react';
 
@@ -631,6 +632,9 @@ const App: React.FC = () => {
               )}
               {activeTab === 'accounts' && isAdmin && (
                 <AccountManagement currentUser={currentUser} projects={projects} />
+              )}
+              {activeTab === 'permissions' && isAdmin && (
+                <PermissionManagement onBack={() => setActiveTab('dashboard')} />
               )}
             </>
           )}

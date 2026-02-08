@@ -12,7 +12,8 @@ import {
   CheckCircle,
   MessageSquare,
   RefreshCw,
-  FileCheck
+  FileCheck,
+  Shield
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -38,6 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
     ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導委員結案報告產製' }] : []),
     // 只有管理員可以看到新案提案
     ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
+    // 只有管理員可以看到權限管理
+    ...(isAdmin ? [{ id: 'permissions', icon: Shield, label: '權限管理' }] : []),
   ];
 
   const handleForceRefresh = () => {

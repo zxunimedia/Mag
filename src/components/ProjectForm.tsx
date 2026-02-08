@@ -45,7 +45,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
 
   // 實施地點操作
   const addSite = () => {
-    setFormData({ ...formData, sites: [...(formData.sites || []), ''] });
+    // 根據選擇的類型添加對應的默認值
+    const newSite = formData.siteTypes?.includes('原鄉') && !formData.siteTypes?.includes('都市') 
+      ? ALL_INDIGENOUS_TOWNSHIPS[0] || '' 
+      : formData.siteTypes?.includes('都市') && !formData.siteTypes?.includes('原鄉')
+      ? TAIWAN_CITIES[0] || ''
+      : ''; // 如果兩個都選了，默認為空
+    setFormData({ ...formData, sites: [...(formData.sites || []), newSite] });
   };
 
   const updateSite = (index: number, value: string) => {
