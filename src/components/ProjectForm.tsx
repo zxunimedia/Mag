@@ -473,7 +473,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               {/* 原鄉：顯示原住民鄉鎮下拉選單 */}
               {formData.siteTypes?.includes('原鄉') && (
                 <div className="space-y-3">
-                  {formData.sites?.filter(s => s).map((site, idx) => (
+                  {formData.sites?.filter(s => s && ALL_INDIGENOUS_TOWNSHIPS.includes(s)).map((site, idx) => (
                     <div key={`site-${idx}`} className="flex items-center gap-3">
                       <div className="relative flex-1">
                         <select
@@ -502,7 +502,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               {/* 都市：顯示縣市+鄉鎮市區兩層下拉選單 */}
               {formData.siteTypes?.includes('都市') && (
                 <div className="space-y-3">
-                  {formData.sites?.filter(s => s).map((site, idx) => {
+                  {formData.sites?.filter(s => s && !ALL_INDIGENOUS_TOWNSHIPS.includes(s)).map((site, idx) => {
                     // 解析已選擇的縣市和鄉鎮
                     const parts = site.split(/(?<=市|縣)/);
                     const selectedCity = parts[0] || '';
