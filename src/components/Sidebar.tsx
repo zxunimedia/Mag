@@ -52,9 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
   return (
     <div className="w-64 bg-[#2D3E50] text-white min-h-screen flex flex-col shadow-xl">
       <div className="p-6 flex items-center gap-3 border-b border-[#3E4E5E]">
-        <div className="bg-amber-400 p-1.5 rounded-lg">
-          <Mountain className="text-[#2D3E50] w-6 h-6" />
-        </div>
+        <img src="/logo.png" alt="文化部原村計畫" className="w-10 h-10 object-contain" />
         <div className="flex flex-col">
           <h1 className="font-black text-lg leading-tight tracking-tighter">文化部原村計畫</h1>
           <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Management System</span>
