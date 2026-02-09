@@ -38,7 +38,7 @@ const MOCK_PROJECTS: Project[] = [
     sites: ['部落集會所'],
     appliedAmount: 934915,
     approvedAmount: 850000,
-    commissioner: { name: '陳專家', title: '輔導委員', email: 'chen@moc.gov.tw' },
+    commissioner: { name: '陳專家', title: '輔導老師', email: 'chen@moc.gov.tw' },
     chiefStaff: { name: '林專員', title: '文化部主責', email: 'lin@moc.gov.tw' },
     visionText: '從庫房到衣著,拔馬部落衣飾復刻及日常化計畫',
     description: '建構部落傳統衣飾之復刻、日常化推廣之脈絡。',
@@ -479,7 +479,7 @@ const App: React.FC = () => {
           selectedProject ? (
             <div className="space-y-6">
               <ProjectDetail project={selectedProject} reports={reports} onBack={() => setSelectedProject(null)} />
-              {/* 輔導委員只能閱覽，不顯示編輯按鈕 */}
+              {/* 輔導老師只能閱覽，不顯示編輯按鈕 */}
               {!isCoach && (
                 <div className="flex gap-4 max-w-5xl mx-auto">
                   <button onClick={() => setEditMode('BASIC')} className="flex-1 py-5 bg-white border-2 border-slate-200 text-slate-700 font-black rounded-[32px] hover:bg-slate-50 transition-all flex flex-col items-center gap-2 shadow-sm">
@@ -519,7 +519,7 @@ const App: React.FC = () => {
                            <FileDown size={20} /> 批次匯出 ({selectedReportIds.length})
                          </button>
                        )}
-                       {/* 只有管理員和單位操作員可以新增月報，輔導委員只能閱覽 */}
+                       {/* 只有管理員和單位操作員可以新增月報，輔導老師只能閱覽 */}
                        {!isCoach && (
                          <button onClick={() => { setEditMode('CONTROL'); setSelectedReport(null); }} className="bg-[#2D3E50] text-white px-8 py-3.5 rounded-2xl font-black shadow-xl hover:bg-slate-700 transition-all flex items-center gap-2">
                             <Plus size={20} /> 新增填報
@@ -576,7 +576,7 @@ const App: React.FC = () => {
                                </td>
                                <td className="px-6 py-6 text-sm font-black text-emerald-600">${totalSpent.toLocaleString()}</td>
                                <td className="px-6 py-6 text-center flex justify-center gap-2">
-                                 {/* 輔導委員只能查看，不能編輯或刪除 */}
+                                 {/* 輔導老師只能查看，不能編輯或刪除 */}
                                  <button 
                                     onClick={() => {
                                       setSelectedProject(proj!);

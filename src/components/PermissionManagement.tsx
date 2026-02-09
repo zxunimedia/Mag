@@ -149,7 +149,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
       case UserRole.ADMIN:
         return '管理員';
       case UserRole.COACH:
-        return '輔導委員';
+        return '輔導老師';
       case UserRole.OPERATOR:
         return '操作人員';
       default:
@@ -239,7 +239,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
                   className="form-input w-full"
                 >
                   <option value={UserRole.OPERATOR}>操作人員</option>
-                  <option value={UserRole.COACH}>輔導委員</option>
+                  <option value={UserRole.COACH}>輔導老師</option>
                   <option value={UserRole.ADMIN}>管理員</option>
                 </select>
               </div>
@@ -382,7 +382,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
                             className="form-input w-full"
                           >
                             <option value={UserRole.OPERATOR}>操作人員</option>
-                            <option value={UserRole.COACH}>輔導委員</option>
+                            <option value={UserRole.COACH}>輔導老師</option>
                             <option value={UserRole.ADMIN}>管理員</option>
                           </select>
                         </div>
@@ -492,7 +492,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
             </ul>
           </div>
           <div className="bg-white p-4 rounded-lg">
-            <h4 className="font-bold text-blue-700 mb-2">👨‍🏫 輔導委員</h4>
+            <h4 className="font-bold text-blue-700 mb-2">👨‍🏫 輔導老師</h4>
             <ul className="text-sm text-gray-600 space-y-1">
               <li>✓ 查看分配計畫</li>
               <li>✓ 填寫輔導紀錄</li>

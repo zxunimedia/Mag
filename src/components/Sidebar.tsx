@@ -27,16 +27,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
   const isAdmin = userRole === UserRole.ADMIN;
   const isCoach = userRole === UserRole.COACH;
 
-  // 輔導委員可以看到的選單：儀表板、計畫資料(閱覽)、月報填報(閱覽)、輔導紀錄、結案報告
+  // 輔導老師可以看到的選單：儀表板、計畫資料(閱覽)、月報填報(閱覽)、輔導紀錄、結案報告
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: '儀表板總覽' },
     { id: 'projects', icon: FolderKanban, label: '1. 計畫資料' },
     { id: 'reports', icon: FileText, label: '2. 月報填報' },
     { id: 'coaching', icon: MessageSquare, label: '3. 輔導紀錄' },
-    // 撥付進度只有管理員和單位操作員可以看到，輔導委員不需要
+    // 撥付進度只有管理員和單位操作員可以看到，輔導老師不需要
     ...(!isCoach ? [{ id: 'grants', icon: CheckCircle, label: '4. 撥付進度' }] : []),
-    // 管理員和輔導老師可以看到輔導委員結案報告產製
-    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導委員結案報告產製' }] : []),
+    // 管理員和輔導老師可以看到輔導老師結案報告產製
+    ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導老師結案報告產製' }] : []),
     // 只有管理員可以看到新案提案
     ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
     // 只有管理員可以看到權限管理

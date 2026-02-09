@@ -136,7 +136,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
               <span className="font-bold text-emerald-600">${project.approvedAmount?.toLocaleString()}</span>
             </div>
             <div className="text-sm">
-              <span className="text-gray-500">輔導委員：</span>
+              <span className="text-gray-500">輔導老師：</span>
               <span className="font-bold text-gray-800">{project.commissioner?.name}</span>
             </div>
           </div>

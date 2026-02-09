@@ -16,7 +16,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onSelectProject, on
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const isAdmin = userRole === UserRole.ADMIN;
   const isCoach = userRole === UserRole.COACH;
-  const canEdit = isAdmin; // 只有管理員可以編輯，輔導委員只能閱覽
+  const canEdit = isAdmin; // 只有管理員可以編輯，輔導老師只能閱覽
 
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

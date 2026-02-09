@@ -590,8 +590,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               </div>
             </div>
 
-            {/* 輔導委員 */}
-            {renderContactSection("輔導委員", "commissioner", UserCircle, formData.commissioner as ContactInfo)}
+            {/* 輔導老師 */}
+            {renderContactSection("輔導老師", "commissioner", UserCircle, formData.commissioner as ContactInfo)}
             
             {/* 主責人員 */}
             {renderContactSection("主責人員", "chiefStaff", UserCircle, formData.chiefStaff as ContactInfo)}
