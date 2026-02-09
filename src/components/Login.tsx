@@ -67,8 +67,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center p-6">
       <div className="bg-white w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden border border-gray-100 flex flex-col p-10 space-y-8 animate-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="w-20 h-20 bg-[#2D3E50] rounded-3xl flex items-center justify-center text-amber-400 shadow-xl shadow-slate-200">
-            <Mountain size={44} />
+          <div className="w-20 h-20 flex items-center justify-center shadow-xl shadow-slate-200">
+            <img src="/logo.png" alt="文化部原村計畫" className="w-20 h-20 object-contain" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">文化部原村計畫管考系統</h1>
