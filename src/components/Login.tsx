@@ -154,6 +154,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <ShieldCheck size={48} className="mx-auto text-amber-500" />
                <h3 className="text-lg font-black text-slate-800">輸入驗證碼</h3>
                <p className="text-xs font-bold text-slate-400">已發送 6 位數代碼至 {email}</p>
+               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                 <p className="text-xs font-bold text-blue-700">測試驗證碼：<span className="text-lg font-black text-blue-900">123456</span></p>
+                 <p className="text-xs text-blue-600 mt-1">（開發測試用，實際系統將發送真實驗證碼）</p>
+               </div>
             </div>
             <input 
               type="text" required maxLength={6} placeholder="驗證碼" 
