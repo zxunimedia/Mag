@@ -90,7 +90,8 @@ const MOCK_PROJECTS: Project[] = [
 const STORAGE_KEYS = {
   PROJECTS: 'mag_projects',
   MONTHLY_REPORTS: 'mag_monthly_reports',
-  COACHING_RECORDS: 'mag_coaching_records'
+  COACHING_RECORDS: 'mag_coaching_records',
+  USERS: 'mag_users'
 };
 
 const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
@@ -147,8 +148,30 @@ const App: React.FC = () => {
     saveToStorage(STORAGE_KEYS.COACHING_RECORDS, coachingRecords);
   }, [coachingRecords]);
 
+  // 處理用戶登錄，保存新用戶到 localStorage
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    
+    // 從 localStorage 讀取現有用戶列表
+    const existingUsers = loadFromStorage<User[]>(STORAGE_KEYS.USERS, []);
+    
+    // 檢查用戶是否已存在
+    const userExists = existingUsers.some(u => u.email === user.email);
+    
+    if (!userExists) {
+      // 新用戶，添加到列表
+      const newUser: User = {
+        ...user,
+        createdAt: new Date().toISOString(),
+        assignedProjectIds: []
+      };
+      const updatedUsers = [...existingUsers, newUser];
+      saveToStorage(STORAGE_KEYS.USERS, updatedUsers);
+    }
+  };
+
   if (!currentUser) {
-    return <Login onLogin={setCurrentUser} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
