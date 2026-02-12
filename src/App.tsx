@@ -134,6 +134,10 @@ const App: React.FC = () => {
   const [reports] = useState<Report[]>([]);
   // 月報批次選擇狀態
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
+  // 用戶列表狀態
+  const [users, setUsers] = useState<User[]>(() => 
+    loadFromStorage(STORAGE_KEYS.USERS, [])
+  );
 
   // 當資料變更時自動儲存到 localStorage
   useEffect(() => {
@@ -148,15 +152,16 @@ const App: React.FC = () => {
     saveToStorage(STORAGE_KEYS.COACHING_RECORDS, coachingRecords);
   }, [coachingRecords]);
 
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.USERS, users);
+  }, [users]);
+
   // 處理用戶登錄，保存新用戶到 localStorage
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     
-    // 從 localStorage 讀取現有用戶列表
-    const existingUsers = loadFromStorage<User[]>(STORAGE_KEYS.USERS, []);
-    
     // 檢查用戶是否已存在
-    const userExists = existingUsers.some(u => u.email === user.email);
+    const userExists = users.some(u => u.email === user.email);
     
     if (!userExists) {
       // 新用戶，添加到列表
@@ -165,14 +170,18 @@ const App: React.FC = () => {
         createdAt: new Date().toISOString(),
         assignedProjectIds: []
       };
-      const updatedUsers = [...existingUsers, newUser];
-      saveToStorage(STORAGE_KEYS.USERS, updatedUsers);
+      setUsers([...users, newUser]);
     }
   };
 
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
+
+  // 處理用戶列表更新
+  const handleUsersChange = (updatedUsers: User[]) => {
+    setUsers(updatedUsers);
+  };
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isCoach = currentUser.role === UserRole.COACH;
@@ -657,7 +666,7 @@ const App: React.FC = () => {
                 <AccountManagement currentUser={currentUser} projects={projects} />
               )}
               {activeTab === 'permissions' && isAdmin && (
-                <PermissionManagement projects={projects} onBack={() => setActiveTab('dashboard')} />
+                <PermissionManagement projects={projects} users={users} onUsersChange={handleUsersChange} onBack={() => setActiveTab('dashboard')} />
               )}
             </>
           )}

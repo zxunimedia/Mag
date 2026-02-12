@@ -4,6 +4,8 @@ import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDow
 
 interface PermissionManagementProps {
   projects: Project[];
+  users: User[];
+  onUsersChange: (users: User[]) => void;
   onBack: () => void;
 }
 
@@ -11,7 +13,7 @@ interface UserWithProjects extends User {
   isEditing?: boolean;
 }
 
-const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, onBack }) => {
+const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, users: propsUsers, onUsersChange, onBack }) => {
   const [users, setUsers] = useState<UserWithProjects[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -25,54 +27,18 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
     assignedProjectIds: []
   });
 
-  // 從 localStorage 加載用戶列表
+  // 當 props 中的用戶列表改變時，更新本地狀態
   useEffect(() => {
-    const stored = localStorage.getItem('mag_users');
-    if (stored) {
-      setUsers(JSON.parse(stored));
-    } else {
-      // 預設用戶
-      const defaultUsers: UserWithProjects[] = [
-        {
-          id: 'admin-1',
-          name: '管理員',
-          email: 'admin@moc.gov.tw',
-          role: UserRole.ADMIN,
-          unitId: 'MOC',
-          unitName: '文化部',
-          assignedProjectIds: [],
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'coach-1',
-          name: '陳輔導',
-          email: 'coach@moc.gov.tw',
-          role: UserRole.COACH,
-          unitId: 'MOC',
-          unitName: '文化部',
-          assignedProjectIds: ['1'],
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'operator-1',
-          name: '王操作員',
-          email: 'operator@moc.gov.tw',
-          role: UserRole.OPERATOR,
-          unitId: 'unit-101',
-          unitName: '拔馬部落文化發展協會',
-          assignedProjectIds: ['1'],
-          createdAt: new Date().toISOString()
-        }
-      ];
-      setUsers(defaultUsers);
-      localStorage.setItem('mag_users', JSON.stringify(defaultUsers));
+    if (propsUsers && propsUsers.length > 0) {
+      setUsers(propsUsers as UserWithProjects[]);
     }
-  }, []);
+  }, [propsUsers]);
 
-  // 保存用戶到 localStorage
+  // 保存用戶到 localStorage 並通知父組件
   const saveUsers = (updatedUsers: UserWithProjects[]) => {
     localStorage.setItem('mag_users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
+    onUsersChange(updatedUsers);
   };
 
   // 添加新用戶
@@ -186,7 +152,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, o
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <Shield className="text-blue-500" size={20} />
-            用戶列表
+            用戶列表 ({users.length})
           </h3>
           <button
             onClick={() => setIsAddingUser(!isAddingUser)}
