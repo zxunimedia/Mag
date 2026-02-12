@@ -13,6 +13,39 @@ interface UserWithProjects extends User {
   isEditing?: boolean;
 }
 
+const DEFAULT_USERS: User[] = [
+  {
+    id: 'admin-1',
+    name: '管理員',
+    email: 'admin@moc.gov.tw',
+    role: UserRole.ADMIN,
+    unitId: 'MOC',
+    unitName: '文化部',
+    assignedProjectIds: [],
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'coach-1',
+    name: '陳輔導',
+    email: 'coach@moc.gov.tw',
+    role: UserRole.COACH,
+    unitId: 'MOC',
+    unitName: '文化部',
+    assignedProjectIds: ['1'],
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'operator-1',
+    name: '王操作員',
+    email: 'operator@moc.gov.tw',
+    role: UserRole.OPERATOR,
+    unitId: 'unit-101',
+    unitName: '拔馬部落文化發展協會',
+    assignedProjectIds: ['1'],
+    createdAt: new Date().toISOString()
+  }
+];
+
 const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, users: propsUsers, onUsersChange, onBack }) => {
   const [users, setUsers] = useState<UserWithProjects[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
@@ -27,11 +60,35 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
     assignedProjectIds: []
   });
 
-  // 當 props 中的用戶列表改變時，更新本地狀態
+  // 初始化用戶列表
   useEffect(() => {
+    let userList: User[] = [];
+
+    // 優先使用 props 中的用戶列表
     if (propsUsers && propsUsers.length > 0) {
-      setUsers(propsUsers as UserWithProjects[]);
+      userList = propsUsers;
+    } else {
+      // 其次嘗試從 localStorage 讀取
+      const stored = localStorage.getItem('mag_users');
+      if (stored) {
+        try {
+          userList = JSON.parse(stored);
+        } catch (e) {
+          console.error('讀取 localStorage 失敗，使用預設用戶');
+          userList = DEFAULT_USERS;
+        }
+      } else {
+        // 最後使用預設用戶
+        userList = DEFAULT_USERS;
+      }
     }
+
+    // 確保至少有預設用戶
+    if (userList.length === 0) {
+      userList = DEFAULT_USERS;
+    }
+
+    setUsers(userList as UserWithProjects[]);
   }, [propsUsers]);
 
   // 保存用戶到 localStorage 並通知父組件
@@ -274,206 +331,206 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
 
         {/* 用戶列表 */}
         <div className="space-y-3">
-          {users.map((user) => (
-            <div key={user.id} className="border border-gray-200 rounded-lg overflow-hidden">
-              {/* 用戶基本信息 */}
-              <div className="bg-gray-50 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <button
-                    onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
-                    className="p-1 hover:bg-gray-200 rounded"
-                  >
-                    <ChevronDown 
-                      size={20} 
-                      className={`transition-transform ${expandedUserId === user.id ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-800">{user.name}</h4>
-                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                      <Mail size={14} className="text-gray-400" />
-                      {user.email}
-                    </p>
+          {users && users.length > 0 ? (
+            users.map((user) => (
+              <div key={user.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                {/* 用戶基本信息 */}
+                <div className="bg-gray-50 p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1">
+                    <button
+                      onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
+                      className="p-1 hover:bg-gray-200 rounded"
+                    >
+                      <ChevronDown 
+                        size={20} 
+                        className={`transition-transform ${expandedUserId === user.id ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-800">{user.name}</h4>
+                      <p className="text-sm text-gray-600 flex items-center gap-1">
+                        <Mail size={14} className="text-gray-400" />
+                        {user.email}
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(user.role)}`}>
+                      {getRoleLabel(user.role)}
+                    </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(user.role)}`}>
-                    {getRoleLabel(user.role)}
-                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditUser(user.id)}
+                      className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditUser(user.id)}
-                    className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
 
-              {/* 展開詳情 */}
-              {expandedUserId === user.id && (
-                <div className="p-4 border-t border-gray-200 bg-white">
-                  {user.isEditing ? (
-                    // 編輯模式
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-bold text-gray-600 mb-2 block">用戶名稱</label>
-                          <input
-                            type="text"
-                            value={user.name || ''}
-                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, name: e.target.value } : u))}
-                            className="form-input w-full"
-                          />
+                {/* 展開詳情 */}
+                {expandedUserId === user.id && (
+                  <div className="p-4 border-t border-gray-200 bg-white">
+                    {user.isEditing ? (
+                      // 編輯模式
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-bold text-gray-600 mb-2 block">用戶名稱</label>
+                            <input
+                              type="text"
+                              value={user.name || ''}
+                              onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, name: e.target.value } : u))}
+                              className="form-input w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-600 mb-2 block">信箱</label>
+                            <input
+                              type="email"
+                              value={user.email}
+                              onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, email: e.target.value } : u))}
+                              className="form-input w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-600 mb-2 block">角色</label>
+                            <select
+                              value={user.role}
+                              onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, role: e.target.value as UserRole } : u))}
+                              className="form-input w-full"
+                            >
+                              <option value={UserRole.OPERATOR}>操作人員</option>
+                              <option value={UserRole.COACH}>輔導老師</option>
+                              <option value={UserRole.ADMIN}>管理員</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-bold text-gray-600 mb-2 block">單位名稱</label>
+                            <input
+                              type="text"
+                              value={user.unitName || ''}
+                              onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, unitName: e.target.value } : u))}
+                              className="form-input w-full"
+                            />
+                          </div>
                         </div>
+
+                        {/* 計畫分配編輯 */}
                         <div>
-                          <label className="text-sm font-bold text-gray-600 mb-2 block">信箱</label>
-                          <input
-                            type="email"
-                            value={user.email}
-                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, email: e.target.value } : u))}
-                            className="form-input w-full"
-                          />
+                          <label className="text-sm font-bold text-gray-600 mb-2 block">分配計畫</label>
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                            {projects.length === 0 ? (
+                              <p className="text-gray-500 text-sm">暫無計畫</p>
+                            ) : (
+                              projects.map(project => (
+                                <label key={project.id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-white px-2 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={(user.assignedProjectIds || []).includes(project.id)}
+                                    onChange={() => handleToggleProjectAssignment(user.id, project.id)}
+                                    className="w-4 h-4 text-blue-600 rounded"
+                                  />
+                                  <span className="text-sm text-gray-700">
+                                    {project.name} ({project.unitName})
+                                  </span>
+                                </label>
+                              ))
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-600 mb-2 block">角色</label>
-                          <select
-                            value={user.role}
-                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, role: e.target.value as UserRole } : u))}
-                            className="form-input w-full"
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveEdit(user.id, user)}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
                           >
-                            <option value={UserRole.OPERATOR}>操作人員</option>
-                            <option value={UserRole.COACH}>輔導老師</option>
-                            <option value={UserRole.ADMIN}>管理員</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-bold text-gray-600 mb-2 block">單位名稱</label>
-                          <input
-                            type="text"
-                            value={user.unitName || ''}
-                            onChange={(e) => setUsers(users.map(u => u.id === user.id ? { ...u, unitName: e.target.value } : u))}
-                            className="form-input w-full"
-                          />
+                            <Save size={16} /> 保存
+                          </button>
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400"
+                          >
+                            <X size={16} /> 取消
+                          </button>
                         </div>
                       </div>
-
-                      {/* 計畫分配編輯 */}
-                      <div>
-                        <label className="text-sm font-bold text-gray-600 mb-2 block">分配計畫</label>
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
-                          {projects.length === 0 ? (
-                            <p className="text-gray-500 text-sm">暫無計畫</p>
+                    ) : (
+                      // 查看模式
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-600">單位：<span className="font-bold text-gray-800">{user.unitName || '—'}</span></p>
+                          <p className="text-sm text-gray-600">創建時間：<span className="font-bold text-gray-800">{user.createdAt ? new Date(user.createdAt).toLocaleString('zh-TW') : '—'}</span></p>
+                          <p className="text-sm text-gray-600">最後登錄：<span className="font-bold text-gray-800">{user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-TW') : '未登錄'}</span></p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-600 mb-2">分配計畫：</p>
+                          {(user.assignedProjectIds || []).length === 0 ? (
+                            <p className="text-sm text-gray-500">未分配任何計畫</p>
                           ) : (
-                            projects.map(project => (
-                              <label key={project.id} className="flex items-center gap-2 py-2 cursor-pointer hover:bg-white px-2 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={(user.assignedProjectIds || []).includes(project.id)}
-                                  onChange={() => handleToggleProjectAssignment(user.id, project.id)}
-                                  className="w-4 h-4 text-blue-600 rounded"
-                                />
-                                <span className="text-sm text-gray-700">
-                                  {project.name} ({project.unitName})
-                                </span>
-                              </label>
-                            ))
+                            <div className="space-y-1">
+                              {(user.assignedProjectIds || []).map(projectId => {
+                                const project = projects.find(p => p.id === projectId);
+                                return project ? (
+                                  <div key={projectId} className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-2 rounded">
+                                    <CheckCircle2 size={14} className="text-blue-600" />
+                                    {project.name}
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSaveEdit(user.id, user)}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
-                        >
-                          <Save size={16} /> 保存
-                        </button>
-                        <button
-                          onClick={() => handleEditUser(user.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400"
-                        >
-                          <X size={16} /> 取消
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // 查看模式
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-600">單位：<span className="font-bold text-gray-800">{user.unitName || '—'}</span></p>
-                        <p className="text-sm text-gray-600">創建時間：<span className="font-bold text-gray-800">{user.createdAt ? new Date(user.createdAt).toLocaleString('zh-TW') : '—'}</span></p>
-                        <p className="text-sm text-gray-600">最後登錄：<span className="font-bold text-gray-800">{user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-TW') : '未登錄'}</span></p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-600 mb-2">分配計畫：</p>
-                        {(user.assignedProjectIds || []).length === 0 ? (
-                          <p className="text-sm text-gray-500">未分配任何計畫</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {(user.assignedProjectIds || []).map(projectId => {
-                              const project = projects.find(p => p.id === projectId);
-                              return project ? (
-                                <div key={projectId} className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50 p-2 rounded">
-                                  <CheckCircle2 size={14} className="text-blue-600" />
-                                  {project.name}
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <Lock className="mx-auto text-gray-300 mb-2" size={32} />
+              <p className="text-gray-500">暫無用戶</p>
             </div>
-          ))}
+          )}
         </div>
 
-        {users.length === 0 && (
-          <div className="text-center py-8">
-            <Lock className="mx-auto text-gray-300 mb-2" size={32} />
-            <p className="text-gray-500">暫無用戶</p>
-          </div>
-        )}
-      </div>
-
-      {/* 權限說明 */}
-      <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
-        <h3 className="font-bold text-gray-800 mb-4">角色權限說明</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg">
-            <h4 className="font-bold text-red-700 mb-2">👨‍💼 管理員</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>✓ 查看所有計畫</li>
-              <li>✓ 管理用戶權限</li>
-              <li>✓ 分配計畫給用戶</li>
-              <li>✓ 系統設置</li>
-            </ul>
-          </div>
-          <div className="bg-white p-4 rounded-lg">
-            <h4 className="font-bold text-blue-700 mb-2">👨‍🏫 輔導老師</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>✓ 查看分配計畫</li>
-              <li>✓ 填寫輔導紀錄</li>
-              <li>✓ 查看月報</li>
-              <li>✓ 產製結案報告</li>
-            </ul>
-          </div>
-          <div className="bg-white p-4 rounded-lg">
-            <h4 className="font-bold text-green-700 mb-2">👨‍💻 操作人員</h4>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>✓ 查看分配計畫</li>
-              <li>✓ 填寫月報</li>
-              <li>✓ 查看撥付進度</li>
-              <li>✓ 管理計畫資料</li>
-            </ul>
+        {/* 權限說明 */}
+        <div className="mt-6 bg-blue-50 p-6 rounded-xl border border-blue-200">
+          <h3 className="font-bold text-gray-800 mb-4">角色權限說明</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-bold text-red-700 mb-2">👨‍💼 管理員</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ 查看所有計畫</li>
+                <li>✓ 管理用戶權限</li>
+                <li>✓ 分配計畫給用戶</li>
+                <li>✓ 系統設置</li>
+              </ul>
+            </div>
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-bold text-blue-700 mb-2">👨‍🏫 輔導老師</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ 查看分配計畫</li>
+                <li>✓ 填寫輔導紀錄</li>
+                <li>✓ 查看月報</li>
+                <li>✓ 產製結案報告</li>
+              </ul>
+            </div>
+            <div className="bg-white p-4 rounded-lg">
+              <h4 className="font-bold text-green-700 mb-2">👨‍💻 操作人員</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ 查看分配計畫</li>
+                <li>✓ 填寫月報</li>
+                <li>✓ 查看撥付進度</li>
+                <li>✓ 管理計畫資料</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

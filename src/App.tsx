@@ -135,9 +135,46 @@ const App: React.FC = () => {
   // 月報批次選擇狀態
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   // 用戶列表狀態
-  const [users, setUsers] = useState<User[]>(() => 
-    loadFromStorage(STORAGE_KEYS.USERS, [])
-  );
+  const [users, setUsers] = useState<User[]>(() => {
+    const stored = loadFromStorage(STORAGE_KEYS.USERS, []);
+    // 如果 localStorage 中沒有用戶，使用預設用戶
+    if (stored.length === 0) {
+      const defaultUsers: User[] = [
+        {
+          id: 'admin-1',
+          name: '管理员',
+          email: 'admin@moc.gov.tw',
+          role: UserRole.ADMIN,
+          unitId: 'MOC',
+          unitName: '文化部',
+          assignedProjectIds: [],
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'coach-1',
+          name: '陳輔導',
+          email: 'coach@moc.gov.tw',
+          role: UserRole.COACH,
+          unitId: 'MOC',
+          unitName: '文化部',
+          assignedProjectIds: ['1'],
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'operator-1',
+          name: '王操作员',
+          email: 'operator@moc.gov.tw',
+          role: UserRole.OPERATOR,
+          unitId: 'unit-101',
+          unitName: '拔馬部落文化發展協會',
+          assignedProjectIds: ['1'],
+          createdAt: new Date().toISOString()
+        }
+      ];
+      return defaultUsers;
+    }
+    return stored;
+  });
 
   // 當資料變更時自動儲存到 localStorage
   useEffect(() => {
