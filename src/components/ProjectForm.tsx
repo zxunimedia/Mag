@@ -19,7 +19,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     id: `P${Date.now()}`,
     year: '115',
     status: ProjectStatus.PLANNING,
-    category: '原鄉文化行動',  // 預設計畫類別
+    category: '',  // 預設不勾選任何計畫類別，讓用戶自己選擇
     representative: emptyContact(),
     liaison: emptyContact(),
     chiefStaff: emptyContact(),
