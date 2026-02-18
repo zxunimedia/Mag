@@ -14,6 +14,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [name, setName] = useState('');
+  const [unitName, setUnitName] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,20 +67,77 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setMsg('');
+    
     setTimeout(() => {
-      setMsg('請聯繫管理員開通帳號。系統目前不支持自助註冊，需由管理員建立操作人員帳號。');
+      // 檢查 email 是否已經註冊
+      const savedUsers = localStorage.getItem('registeredUsers');
+      let registeredUsers: User[] = [];
+      
+      if (savedUsers) {
+        try {
+          registeredUsers = JSON.parse(savedUsers);
+        } catch (e) {
+          console.error('Failed to parse registered users:', e);
+        }
+      }
+      
+      const existingUser = registeredUsers.find(u => u.email === email);
+      if (existingUser) {
+        setMsg('此 Email 已經註冊，請直接登入。');
+        setLoading(false);
+        return;
+      }
+      
+      // 生成一個 6 位數的隨機驗證碼
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setVerificationCode(code);
+      
+      setMsg(`驗證碼：${code}（請記下此驗證碼）`);
       setLoading(false);
-      // 不再跳轉到驗證碼頁面
-      // setView('VERIFY');
+      setView('VERIFY');
     }, 1500);
   };
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setMsg('');
+    
     setTimeout(() => {
-      if (code === '123456') { // Mock verification code
-        onLogin({ id: 'new-' + Date.now(), email, role: UserRole.OPERATOR, unitId: 'unit-new' });
+      if (code === verificationCode) {
+        // 驗證成功，創建新用戶
+        const newUser: User = {
+          id: 'op-' + Date.now(),
+          name: name || '操作人員',
+          email: email,
+          password: password,
+          role: UserRole.OPERATOR,
+          unitId: 'unit-' + Date.now(),
+          unitName: unitName || '未設定單位',
+          assignedProjectIds: [],
+          createdAt: new Date().toISOString().split('T')[0],
+          lastLogin: new Date().toISOString().split('T')[0]
+        };
+        
+        // 儲存到 localStorage
+        const savedUsers = localStorage.getItem('registeredUsers');
+        let registeredUsers: User[] = [];
+        
+        if (savedUsers) {
+          try {
+            registeredUsers = JSON.parse(savedUsers);
+          } catch (e) {
+            console.error('Failed to parse registered users:', e);
+          }
+        }
+        
+        registeredUsers.push(newUser);
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        // 自動登入
+        const { password: _, ...userWithoutPassword } = newUser;
+        onLogin(userWithoutPassword);
       } else {
         setMsg('驗證碼不正確，請重新輸入。');
       }
@@ -155,11 +215,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                 <input 
                   type="password" required placeholder="設定密碼 (至少6碼)" 
+                  minLength={6}
                   className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/10 transition-all"
                   value={password} onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              <input 
+                type="text" placeholder="姓名（選填）" 
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/10 transition-all"
+                value={name} onChange={(e) => setName(e.target.value)}
+              />
+              <input 
+                type="text" placeholder="單位名稱（選填）" 
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-4 focus:ring-amber-500/10 transition-all"
+                value={unitName} onChange={(e) => setUnitName(e.target.value)}
+              />
             </div>
+            {msg && <p className="text-xs font-black text-center text-amber-600">{msg}</p>}
             <button 
               disabled={loading}
               className="w-full py-4 bg-amber-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-amber-700 transition-all shadow-xl"
@@ -177,9 +249,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <ShieldCheck size={48} className="mx-auto text-amber-500" />
                <h3 className="text-lg font-black text-slate-800">輸入驗證碼</h3>
                <p className="text-xs font-bold text-slate-400">已發送 6 位數代碼至 {email}</p>
-               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                 <p className="text-xs font-bold text-blue-700">測試驗證碼：<span className="text-lg font-black text-blue-900">123456</span></p>
-                 <p className="text-xs text-blue-600 mt-1">（開發測試用，實際系統將發送真實驗證碼）</p>
+               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                 <p className="text-xs font-bold text-amber-700">您的驗證碼：<span className="text-lg font-black text-amber-900">{verificationCode}</span></p>
+                 <p className="text-xs text-amber-600 mt-1">（請將此驗證碼輸入下方欄位）</p>
                </div>
             </div>
             <input 
