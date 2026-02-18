@@ -227,7 +227,7 @@ const App: React.FC = () => {
   // 計畫指派功能：
   // - 管理員：可以看到所有計畫
   // - 輔導老師：只能看到被指派的計畫（根據 commissioner.email 或 assignedCoaches）
-  // - 操作人員：只能看到被指派的計畫（根據 unitId 或 assignedOperators）
+  // - 操作人員：只能看到被指派的計畫（優先使用 assignedProjectIds，其次使用 assignedOperators）
   const visibleProjects = isAdmin 
     ? projects 
     : isCoach
@@ -236,12 +236,23 @@ const App: React.FC = () => {
           p.assignedCoaches?.includes(currentUser.id) ||
           p.assignedCoaches?.includes(currentUser.email)
         )
-      : projects.filter(p => 
-          p.unitId === currentUser.unitId || 
-          p.liaison?.email === currentUser.email ||
-          p.assignedOperators?.includes(currentUser.id) ||
-          p.assignedOperators?.includes(currentUser.email)
-        );
+      : projects.filter(p => {
+          // 1. 優先檢查 assignedProjectIds（用戶的指定計畫列表）
+          if (currentUser.assignedProjectIds && currentUser.assignedProjectIds.length > 0) {
+            return currentUser.assignedProjectIds.includes(p.id);
+          }
+          // 2. 檢查 assignedOperators（計畫的指定操作人員列表）
+          if (p.assignedOperators?.includes(currentUser.id) || 
+              p.assignedOperators?.includes(currentUser.email)) {
+            return true;
+          }
+          // 3. 檢查是否為聯絡人
+          if (p.liaison?.email === currentUser.email) {
+            return true;
+          }
+          // 4. 不再使用 unitId 過濾，避免同單位的所有計畫都被顯示
+          return false;
+        });
 
   // 儲存/更新計畫 (包含預算編列)
   const handleUpdateProject = (updated: Project) => {

@@ -21,19 +21,41 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setMsg('');
 
     setTimeout(() => {
-      // Admin Check
-      if ((email === 'mag@atipd.tw' && password === 'chin286') || (email === 'admin@moc.gov.tw' && password === 'admin123')) {
-        onLogin({ id: 'admin', email, role: UserRole.ADMIN });
-      } else if (email === 'coach@moc.gov.tw' && password === 'coach123') {
-        // 輔導老師測試帳號
-        onLogin({ id: 'coach-1', email, role: UserRole.COACH });
-      } else if (email === 'operator@test.com' && password === 'test123') {
-        // 操作人員測試帳號
-        onLogin({ id: 'op-test', email, role: UserRole.OPERATOR, unitId: 'unit-101' });
-      } else if (email.includes('@') && password.length >= 6) {
-        onLogin({ id: 'op-' + Date.now(), email, role: UserRole.OPERATOR, unitId: 'unit-101' });
+      // 從 localStorage 讀取註冊用戶數據
+      const savedUsers = localStorage.getItem('registeredUsers');
+      let registeredUsers: User[] = [];
+      
+      if (savedUsers) {
+        try {
+          registeredUsers = JSON.parse(savedUsers);
+        } catch (e) {
+          console.error('Failed to parse registered users:', e);
+        }
+      }
+      
+      // 查找匹配的用戶
+      const user = registeredUsers.find(u => u.email === email);
+      
+      if (user) {
+        // 檢查密碼（實際系統應使用加密比對）
+        if (user.password === password) {
+          // 登入成功，不返回密碼
+          const { password: _, ...userWithoutPassword } = user;
+          onLogin(userWithoutPassword);
+        } else {
+          setMsg('密碼錯誤。');
+        }
       } else {
-        setMsg('帳號或密碼錯誤。');
+        // 未找到用戶，檢查是否為硬編碼的測試帳號
+        if ((email === 'mag@atipd.tw' && password === 'chin286') || (email === 'admin@moc.gov.tw' && password === 'admin123')) {
+          onLogin({ id: 'admin', email, role: UserRole.ADMIN });
+        } else if (email === 'coach@moc.gov.tw' && password === 'coach123') {
+          onLogin({ id: 'coach-1', email, role: UserRole.COACH });
+        } else if (email === 'operator@test.com' && password === 'test123') {
+          onLogin({ id: 'op-test', email, role: UserRole.OPERATOR, unitId: 'unit-101' });
+        } else {
+          setMsg('帳號不存在，請聯繫管理員開通帳號。');
+        }
       }
       setLoading(false);
     }, 1000);
