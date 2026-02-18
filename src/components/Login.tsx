@@ -65,9 +65,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
-      setMsg('驗證碼已發送至您的信箱，請查收。');
+      setMsg('請聯繫管理員開通帳號。系統目前不支持自助註冊，需由管理員建立操作人員帳號。');
       setLoading(false);
-      setView('VERIFY');
+      // 不再跳轉到驗證碼頁面
+      // setView('VERIFY');
     }, 1500);
   };
 

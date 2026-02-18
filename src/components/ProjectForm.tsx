@@ -32,7 +32,19 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     approvedAmount: 0,
     visions: [],
     grants: [],
-    budgetItems: []
+    budgetItems: [],
+    period: '',  // 執行期間
+    startDate: '',  // 開始日期
+    endDate: '',  // 結束日期
+    unitId: '',  // 單位 ID
+    unitName: '',  // 單位名稱
+    name: '',  // 計畫名稱
+    executingUnit: '',  // 執行單位
+    village: '',  // 部落/村落
+    description: '',  // 計畫描述
+    progress: 0,  // 進度
+    spent: 0,  // 已支出
+    budget: 0  // 預算
   });
 
   // 聯絡人更新 - 使用函數式更新避免閉包問題導致的輸入框跳掉
@@ -331,6 +343,41 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                   placeholder="請輸入執行單位..."
                   value={formData.executingUnit || ''}
                   onChange={e => setFormData({ ...formData, executingUnit: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* 執行期間 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="start-date" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">開始日期 <span className="text-red-500">*</span></label>
+                <input 
+                  id="start-date"
+                  type="date" 
+                  className="form-input"
+                  value={formData.startDate || ''}
+                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="end-date" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">結束日期 <span className="text-red-500">*</span></label>
+                <input 
+                  id="end-date"
+                  type="date" 
+                  className="form-input"
+                  value={formData.endDate || ''}
+                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="period" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">執行期間（文字）</label>
+                <input 
+                  id="period"
+                  type="text" 
+                  className="form-input"
+                  placeholder="例：115年1月-12月"
+                  value={formData.period || ''}
+                  onChange={e => setFormData({ ...formData, period: e.target.value })}
                 />
               </div>
             </div>
