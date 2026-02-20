@@ -24,8 +24,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setMsg('');
 
     setTimeout(() => {
-      // 從 localStorage 讀取註冊用戶數據
-      const savedUsers = localStorage.getItem('registeredUsers');
+      // 從 localStorage 讀取用戶數據（統一使用 mag_users）
+      const savedUsers = localStorage.getItem('mag_users');
       let registeredUsers: User[] = [];
       
       if (savedUsers) {
@@ -70,8 +70,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setMsg('');
     
     setTimeout(() => {
-      // 檢查 email 是否已經註冊
-      const savedUsers = localStorage.getItem('registeredUsers');
+      // 檢查 email 是否已經註冊（統一使用 mag_users）
+      const savedUsers = localStorage.getItem('mag_users');
       let registeredUsers: User[] = [];
       
       if (savedUsers) {
@@ -120,8 +120,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           lastLogin: new Date().toISOString().split('T')[0]
         };
         
-        // 儲存到 localStorage
-        const savedUsers = localStorage.getItem('registeredUsers');
+        // 儲存到 localStorage（統一使用 mag_users）
+        const savedUsers = localStorage.getItem('mag_users');
         let registeredUsers: User[] = [];
         
         if (savedUsers) {
@@ -133,7 +133,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
         
         registeredUsers.push(newUser);
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        localStorage.setItem('mag_users', JSON.stringify(registeredUsers));
         
         // 自動登入
         const { password: _, ...userWithoutPassword } = newUser;

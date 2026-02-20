@@ -435,8 +435,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         name="category"
                         checked={formData.category === '原鄉文化行動-無涉產業及就業'} 
                         onChange={() => setFormData({ ...formData, category: '原鄉文化行動-無涉產業及就業' })} 
-                        className="w-4 h-4 text-purple-600 rounded"
-                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '原鄉文化行動-無涉產業及就業' ? '#9333ea' : 'white' }}
+                        className="w-4 h-4 text-purple-600"
+                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '原鄉文化行動-無涉產業及就業' ? '#9333ea' : 'white', borderRadius: '2px' }}
                       />
                       <span className="text-sm font-bold text-slate-600">(1) 無涉產業及就業</span>
                     </label>
@@ -446,8 +446,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         name="category"
                         checked={formData.category === '原鄉文化行動-涉及產業及就業'} 
                         onChange={() => setFormData({ ...formData, category: '原鄉文化行動-涉及產業及就業' })} 
-                        className="w-4 h-4 text-purple-600 rounded"
-                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '原鄉文化行動-涉及產業及就業' ? '#9333ea' : 'white' }}
+                        className="w-4 h-4 text-purple-600"
+                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '原鄉文化行動-涉及產業及就業' ? '#9333ea' : 'white', borderRadius: '2px' }}
                       />
                       <span className="text-sm font-bold text-slate-600">(2) 涉及產業及就業</span>
                     </label>
@@ -463,8 +463,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         name="category"
                         checked={formData.category === '都市文化行動-無涉產業及就業'} 
                         onChange={() => setFormData({ ...formData, category: '都市文化行動-無涉產業及就業' })} 
-                        className="w-4 h-4 text-purple-600 rounded"
-                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '都市文化行動-無涉產業及就業' ? '#9333ea' : 'white' }}
+                        className="w-4 h-4 text-purple-600"
+                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '都市文化行動-無涉產業及就業' ? '#9333ea' : 'white', borderRadius: '2px' }}
                       />
                       <span className="text-sm font-bold text-slate-600">(1) 無涉產業及就業</span>
                     </label>
@@ -474,8 +474,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         name="category"
                         checked={formData.category === '都市文化行動-涉及產業及就業'} 
                         onChange={() => setFormData({ ...formData, category: '都市文化行動-涉及產業及就業' })} 
-                        className="w-4 h-4 text-purple-600 rounded"
-                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '都市文化行動-涉及產業及就業' ? '#9333ea' : 'white' }}
+                        className="w-4 h-4 text-purple-600"
+                        style={{ appearance: 'none', border: '2px solid #9333ea', backgroundColor: formData.category === '都市文化行動-涉及產業及就業' ? '#9333ea' : 'white', borderRadius: '2px' }}
                       />
                       <span className="text-sm font-bold text-slate-600">(2) 涉及產業及就業</span>
                     </label>
