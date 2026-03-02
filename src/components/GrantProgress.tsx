@@ -196,12 +196,18 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
                 <tr key={idx} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4 font-bold text-slate-700">第{idx + 1}期</td>
                   <td className="px-6 py-4 text-center">
-                    <input 
-                      type="date" 
-                      className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm font-bold text-amber-700 outline-none focus:ring-2 focus:ring-amber-500/20"
-                      value={grant.deadline || ''}
-                      onChange={(e) => handleUpdateGrant(idx, 'deadline', e.target.value)}
-                    />
+                    {isAdmin ? (
+                      <input 
+                        type="date" 
+                        className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm font-bold text-amber-700 outline-none focus:ring-2 focus:ring-amber-500/20"
+                        value={grant.deadline || ''}
+                        onChange={(e) => handleUpdateGrant(idx, 'deadline', e.target.value)}
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-2 rounded-xl">
+                        {grant.deadline || '—'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="space-y-1">
