@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mountain, Mail, Lock, Loader2, ArrowRight, ShieldCheck, Info } from 'lucide-react';
 import { User, UserRole } from '../types';
-import { supabase, getCurrentProfile } from '../services/supabaseClient';
+import { supabase, getCurrentProfile, supabaseConfigured } from '../services/supabaseClient';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -18,6 +18,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setMsg('');
+
+    // 先檢查環境變數是否正確載入
+    if (!supabaseConfigured) {
+      setMsg('系統設定錯誤：後端服務未正確連線，請聯繫系統管理員確認 Vercel 環境變數設定。');
+      setLoading(false);
+      return;
+    }
 
     try {
       // 使用 Supabase Auth 登入

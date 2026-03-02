@@ -1,16 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// ─── 環境變數讀取（加入診斷保護，避免 env 未載入時白屏）────────────
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || '';
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+/** 若 false，代表環境變數未正確設定，所有 Supabase 呼叫將回傳錯誤 */
+export const supabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+if (!supabaseConfigured) {
+  console.warn('[Supabase] ⚠️ VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY 未設定。請在 Vercel Dashboard > Settings > Environment Variables 確認已新增這兩個變數，並重新部署。');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
   },
 });
 
@@ -80,7 +85,15 @@ export interface DBGrantStage {
 
 /** 取得目前登入用戶的 profile */
 export async function getCurrentProfile(): Promise<DBProfile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  if (!supabaseConfigured) {
+    console.error('[Supabase] Cannot get profile: environment variables not configured');
+    return null;
+  }
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError) {
+    console.error('[Supabase] getUser error:', userError.message);
+    return null;
+  }
   if (!user) return null;
 
   const { data, error } = await supabase
@@ -90,7 +103,7 @@ export async function getCurrentProfile(): Promise<DBProfile | null> {
     .single();
 
   if (error) {
-    console.error('Failed to get profile:', error);
+    console.error('[Supabase] Failed to get profile:', error.code, error.message, '| user.id:', user.id);
     return null;
   }
   return data as DBProfile;
