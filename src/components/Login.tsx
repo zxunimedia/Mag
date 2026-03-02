@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Mountain, Mail, Lock, Loader2, ArrowRight, ShieldCheck, Info } from 'lucide-react';
 import { User, UserRole } from '../types';
+import { supabase, getCurrentProfile } from '../services/supabaseClient';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -14,49 +14,64 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMsg('');
 
-    setTimeout(() => {
-      // 從 localStorage 讀取用戶數據
-      const savedUsers = localStorage.getItem('mag_users');
-      let registeredUsers: User[] = [];
+    try {
+      // 使用 Supabase Auth 登入
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      if (savedUsers) {
-        try {
-          registeredUsers = JSON.parse(savedUsers);
-        } catch (e) {
-          console.error('Failed to parse registered users:', e);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setMsg('帳號或密碼錯誤，請重新輸入或聯繫管理員（mag@atipd.tw）重設密碼。');
+        } else if (error.message.includes('Email not confirmed')) {
+          setMsg('帳號尚未驗證，請聯繫管理員（mag@atipd.tw）確認帳號狀態。');
+        } else {
+          setMsg(`登入失敗：${error.message}`);
         }
+        setLoading(false);
+        return;
       }
 
-      // 查找匹配的用戶
-      const user = registeredUsers.find(u => u.email === email);
-
-      if (user) {
-        if (user.password === password) {
-          const { password: _, ...userWithoutPassword } = user;
-          onLogin(userWithoutPassword);
-        } else {
-          setMsg('密碼錯誤，請重新輸入或聯繫管理員重設密碼。');
-        }
-      } else {
-        // 硬編碼的系統帳號
-        if ((email === 'mag@atipd.tw' && password === 'chin286') ||
-            (email === 'admin@moc.gov.tw' && password === 'admin123')) {
-          onLogin({ id: 'admin', email, role: UserRole.ADMIN });
-        } else if (email === 'coach@moc.gov.tw' && password === 'coach123') {
-          onLogin({ id: 'coach-1', email, role: UserRole.COACH });
-        } else if (email === 'operator@test.com' && password === 'test123') {
-          onLogin({ id: 'op-test', email, role: UserRole.OPERATOR, unitId: 'unit-101' });
-        } else {
-          setMsg('帳號不存在。本系統帳號由管理員統一開通，請聯繫管理員（mag@atipd.tw）申請帳號。');
-        }
+      if (!data.user) {
+        setMsg('登入失敗，請稍後再試。');
+        setLoading(false);
+        return;
       }
+
+      // 取得用戶 profile（角色資訊）
+      const profile = await getCurrentProfile();
+
+      if (!profile) {
+        setMsg('無法取得帳號資訊，請聯繫管理員（mag@atipd.tw）。');
+        setLoading(false);
+        return;
+      }
+
+      // 組合 User 物件傳給 App
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email ?? email,
+        name: profile.name ?? undefined,
+        role: profile.role as UserRole,
+        unitId: profile.unit_id ?? undefined,
+        unitName: profile.unit_name ?? undefined,
+        assignedProjectIds: [],
+        lastLogin: new Date().toISOString(),
+      };
+
+      onLogin(user);
+    } catch (err) {
+      console.error('Login error:', err);
+      setMsg('系統錯誤，請稍後再試或聯繫管理員。');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

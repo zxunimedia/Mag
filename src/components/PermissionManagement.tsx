@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Project } from '../types';
+import { supabase } from '../services/supabaseClient';
 import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2, Circle } from 'lucide-react';
 
 interface PermissionManagementProps {
@@ -68,19 +69,8 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
     if (propsUsers && propsUsers.length > 0) {
       userList = propsUsers;
     } else {
-      // 其次嘗試從 localStorage 讀取
-      const stored = localStorage.getItem('mag_users');
-      if (stored) {
-        try {
-          userList = JSON.parse(stored);
-        } catch (e) {
-          console.error('讀取 localStorage 失敗，使用預設用戶');
-          userList = DEFAULT_USERS;
-        }
-      } else {
-        // 最後使用預設用戶
-        userList = DEFAULT_USERS;
-      }
+      // 使用預設用戶（Supabase 版本從 profiles 表讀取，這裡作為 fallback）
+      userList = DEFAULT_USERS;
     }
 
     // 確保至少有預設用戶
@@ -91,35 +81,62 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
     setUsers(userList as UserWithProjects[]);
   }, [propsUsers]);
 
-  // 保存用戶到 localStorage 並通知父組件
+  // 保存用戶狀態並通知父組件
   const saveUsers = (updatedUsers: UserWithProjects[]) => {
-    localStorage.setItem('mag_users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
     onUsersChange(updatedUsers);
   };
 
-  // 添加新用戶
-  const handleAddUser = () => {
+  // 添加新用戶（透過 Supabase Auth 建立帳號）
+  const handleAddUser = async () => {
     if (!newUser.name || !newUser.email || !newUser.password) {
       alert('請填寫用戶名稱、信箱和密碼');
       return;
     }
-
-    const user: UserWithProjects = {
-      id: `user-${Date.now()}`,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role || UserRole.OPERATOR,
-      unitId: newUser.unitId || '',
-      unitName: newUser.unitName || '',
-      assignedProjectIds: newUser.assignedProjectIds || [],
-      createdAt: new Date().toISOString()
-    };
-
-    const updated = [...users, user];
-    saveUsers(updated);
-    setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
-    setIsAddingUser(false);
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUser.email!,
+        password: newUser.password!,
+        options: { data: { name: newUser.name } }
+      });
+      if (authError) {
+        alert(`建立帳號失敗：${authError.message}`);
+        return;
+      }
+      const userId = authData.user?.id ?? `local-${Date.now()}`;
+      if (authData.user?.id) {
+        const roleMap: Record<string, string> = {
+          [UserRole.ADMIN]: 'MOC_ADMIN',
+          [UserRole.COACH]: 'COACH',
+          [UserRole.OPERATOR]: 'UNIT_OPERATOR',
+        };
+        await supabase.from('profiles').upsert({
+          id: userId,
+          name: newUser.name,
+          role: roleMap[newUser.role ?? UserRole.OPERATOR] ?? 'UNIT_OPERATOR',
+          unit_id: newUser.unitId || null,
+          unit_name: newUser.unitName || null,
+        });
+      }
+      const user: UserWithProjects = {
+        id: userId,
+        name: newUser.name!,
+        email: newUser.email!,
+        role: newUser.role || UserRole.OPERATOR,
+        unitId: newUser.unitId || '',
+        unitName: newUser.unitName || '',
+        assignedProjectIds: newUser.assignedProjectIds || [],
+        createdAt: new Date().toISOString()
+      };
+      const updated = [...users, user];
+      saveUsers(updated);
+      setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
+      setIsAddingUser(false);
+      alert(`帳號已建立！${authData.user?.email_confirmed_at ? '' : '（需要驗證 Email 才能登入）'}`);
+    } catch (err) {
+      console.error('handleAddUser error:', err);
+      alert('建立帳號時發生錯誤，請稍後再試。');
+    }
   };
 
   // 編輯用戶

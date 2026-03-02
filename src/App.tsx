@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { supabase, fetchProjects, getCurrentProfile } from './services/supabaseClient';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ProjectList from './components/ProjectList';
@@ -86,130 +87,165 @@ const MOCK_PROJECTS: Project[] = [
   }
 ];
 
-// localStorage 資料持久化工具函數
-const STORAGE_KEYS = {
-  PROJECTS: 'mag_projects',
-  MONTHLY_REPORTS: 'mag_monthly_reports',
-  COACHING_RECORDS: 'mag_coaching_records',
-  USERS: 'mag_users'
-};
+// ─── Supabase 資料轉換工具 ────────────────────────────────────────
+const dbToProject = (row: Record<string, unknown>): Project => ({
+  id: row.id as string,
+  projectCode: (row.project_code as string) ?? '',
+  unitId: (row.unit_id as string) ?? '',
+  unitName: (row.unit_name as string) ?? '',
+  name: (row.name as string) ?? '',
+  executingUnit: (row.executing_unit as string) ?? '',
+  year: (row.year as string) ?? '',
+  period: (row.period as string) ?? '',
+  category: (row.category as string) ?? '' as Project['category'],
+  startDate: (row.start_date as string) ?? '',
+  endDate: (row.end_date as string) ?? '',
+  status: (row.status as ProjectStatus) ?? ProjectStatus.PLANNING,
+  village: (row.village as string) ?? '',
+  legalAddress: (row.legal_address as string) ?? '',
+  contactAddress: (row.contact_address as string) ?? '',
+  siteTypes: (row.site_types as ('原鄉' | '都市')[]) ?? [],
+  sites: (row.sites as string[]) ?? [],
+  appliedAmount: (row.applied_amount as number) ?? 0,
+  approvedAmount: (row.approved_amount as number) ?? 0,
+  budget: (row.budget as number) ?? 0,
+  spent: (row.spent as number) ?? 0,
+  progress: (row.progress as number) ?? 0,
+  description: (row.description as string) ?? '',
+  representative: (row.representative as Project['representative']) ?? { name: '', title: '', email: '' },
+  liaison: (row.liaison as Project['liaison']) ?? { name: '', title: '', email: '' },
+  commissioner: (row.commissioner as Project['commissioner']) ?? { name: '', title: '', email: '' },
+  chiefStaff: (row.chief_staff as Project['chiefStaff']) ?? { name: '', title: '', email: '' },
+  visions: (row.visions as Project['visions']) ?? [],
+  budgetItems: (row.budget_items as Project['budgetItems']) ?? [],
+  grants: [],
+  coachingRecords: [],
+  assignedCoaches: [],
+  assignedOperators: [],
+});
 
-const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error(`Failed to load ${key} from localStorage:`, e);
-  }
-  return defaultValue;
-};
-
-const saveToStorage = <T,>(key: string, data: T): void => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.error(`Failed to save ${key} to localStorage:`, e);
-  }
-};
+const projectToDb = (p: Project): Record<string, unknown> => ({
+  project_code: p.projectCode ?? null,
+  unit_id: p.unitId ?? null,
+  unit_name: p.unitName ?? null,
+  name: p.name,
+  executing_unit: p.executingUnit,
+  year: p.year,
+  period: p.period,
+  category: p.category,
+  start_date: p.startDate,
+  end_date: p.endDate,
+  status: p.status,
+  village: p.village,
+  legal_address: p.legalAddress,
+  contact_address: p.contactAddress,
+  site_types: p.siteTypes,
+  sites: p.sites,
+  applied_amount: p.appliedAmount,
+  approved_amount: p.approvedAmount,
+  budget: p.budget,
+  spent: p.spent,
+  progress: p.progress,
+  description: p.description,
+  representative: p.representative,
+  liaison: p.liaison,
+  commissioner: p.commissioner,
+  chief_staff: p.chiefStaff,
+  visions: p.visions,
+  budget_items: p.budgetItems,
+  updated_at: new Date().toISOString(),
+});
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
   const [editMode, setEditMode] = useState<'NONE' | 'BASIC' | 'CONTROL'>('NONE');
   
-  // 從 localStorage 讀取資料，如果沒有則使用預設資料
-  const [projects, setProjects] = useState<Project[]>(() => 
-    loadFromStorage(STORAGE_KEYS.PROJECTS, MOCK_PROJECTS)
-  );
-  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>(() => 
-    loadFromStorage(STORAGE_KEYS.MONTHLY_REPORTS, [])
-  );
-  const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>(() => 
-    loadFromStorage(STORAGE_KEYS.COACHING_RECORDS, [])
-  );
+  // ─── Supabase 資料狀態 ─────────────────────────────────────────────
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
+  const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>([]);
   const [reports] = useState<Report[]>([]);
-  // 月報批次選擇狀態
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
-  // 用戶列表狀態
-  const [users, setUsers] = useState<User[]>(() => {
-    const stored = loadFromStorage(STORAGE_KEYS.USERS, []);
-    // 如果 localStorage 中沒有用戶，使用預設用戶
-    if (stored.length === 0) {
-      const defaultUsers: User[] = [
-        {
-          id: 'admin-1',
-          name: '管理员',
-          email: 'admin@moc.gov.tw',
-          role: UserRole.ADMIN,
-          unitId: 'MOC',
-          unitName: '文化部',
-          assignedProjectIds: [],
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'coach-1',
-          name: '陳輔導',
-          email: 'coach@moc.gov.tw',
-          role: UserRole.COACH,
-          unitId: 'MOC',
-          unitName: '文化部',
-          assignedProjectIds: ['1'],
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'operator-1',
-          name: '王操作员',
-          email: 'operator@moc.gov.tw',
-          role: UserRole.OPERATOR,
-          unitId: 'unit-101',
-          unitName: '拔馬部落文化發展協會',
-          assignedProjectIds: ['1'],
-          createdAt: new Date().toISOString()
-        }
-      ];
-      return defaultUsers;
+  const [users, setUsers] = useState<User[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
+  // ─── 從 Supabase 載入計畫資料 ─────────────────────────────────────
+  const loadProjects = useCallback(async () => {
+    setProjectsLoading(true);
+    try {
+      const rows = await fetchProjects();
+      setProjects(rows.map(r => dbToProject(r as unknown as Record<string, unknown>)));
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+    } finally {
+      setProjectsLoading(false);
     }
-    return stored;
-  });
+  }, []);
 
-  // 當資料變更時自動儲存到 localStorage
+  // ─── 監聽 Supabase Auth 狀態（頁面重整後自動恢復登入）────────────
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.PROJECTS, projects);
-  }, [projects]);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await getCurrentProfile();
+        if (profile) {
+          setCurrentUser({
+            id: session.user.id,
+            email: session.user.email ?? '',
+            name: profile.name ?? undefined,
+            role: profile.role as UserRole,
+            unitId: profile.unit_id ?? undefined,
+            unitName: profile.unit_name ?? undefined,
+            assignedProjectIds: [],
+          });
+        }
+      }
+      setAuthLoading(false);
+    });
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setProjects([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 登入後載入計畫
   useEffect(() => {
-    saveToStorage(STORAGE_KEYS.MONTHLY_REPORTS, monthlyReports);
-  }, [monthlyReports]);
+    if (currentUser) {
+      loadProjects();
+    }
+  }, [currentUser, loadProjects]);
 
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.COACHING_RECORDS, coachingRecords);
-  }, [coachingRecords]);
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.USERS, users);
-  }, [users]);
-
-  // 處理用戶登錄，保存新用戶到 localStorage
+  // 處理用戶登錄
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    
-    // 檢查用戶是否已存在
-    const userExists = users.some(u => u.email === user.email);
-    
-    if (!userExists) {
-      // 新用戶，添加到列表
-      const newUser: User = {
-        ...user,
-        createdAt: new Date().toISOString(),
-        assignedProjectIds: []
-      };
-      setUsers([...users, newUser]);
-    }
   };
+
+  // 處理登出
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    setProjects([]);
+    setActiveTab('dashboard');
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-bold">載入中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
@@ -254,15 +290,28 @@ const App: React.FC = () => {
           return false;
         });
 
-  // 儲存/更新計畫 (包含預算編列)
-  const handleUpdateProject = (updated: Project) => {
+  // 儲存/更新計畫 → 寫入 Supabase
+  const handleUpdateProject = async (updated: Project) => {
     setProjects(prev => {
       const exists = prev.find(p => p.id === updated.id);
-      if (exists) {
-        return prev.map(p => p.id === updated.id ? updated : p);
-      }
+      if (exists) return prev.map(p => p.id === updated.id ? updated : p);
       return [...prev, updated];
     });
+    try {
+      const dbData = projectToDb(updated);
+      const isNew = updated.id.startsWith('P');
+      if (isNew) {
+        const { data, error } = await supabase.from('projects').insert([dbData]).select('id').single();
+        if (error) throw error;
+        if (data?.id) setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, id: data.id } : p));
+      } else {
+        const { error } = await supabase.from('projects').update(dbData).eq('id', updated.id);
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.error('Failed to save project:', err);
+      loadProjects();
+    }
   };
 
   // 儲存月報 (包含支出明細與進度更新)
@@ -510,7 +559,7 @@ const App: React.FC = () => {
                </button>
             )}
           </div>
-          <button onClick={() => setCurrentUser(null)} className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-sm transition-all group shadow-sm">
+          <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-sm transition-all group shadow-sm">
             <LogOut size={18} className="group-hover:rotate-12 transition-transform" /> 登出系統
           </button>
         </header>
