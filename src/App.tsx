@@ -12,7 +12,6 @@ import CoachingFinalReport from './components/CoachingFinalReport';
 import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
-import AccountManagement from './components/AccountManagement';
 import PermissionManagement from './components/PermissionManagement';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus, GrantDocStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus, FileDown, CheckSquare, Square } from 'lucide-react';
@@ -186,7 +185,41 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // ─── 監聽 Supabase Auth 狀態（頁面重整後自動恢復登入）────────────
+  // ─── 從 Supabase 載入用戶列表 ───────────────────────────────────────────────
+  const loadUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, role, unit_id, unit_name, created_at')
+        .order('created_at', { ascending: true });
+      if (error) {
+        console.error('Failed to load users:', error);
+        return;
+      }
+      if (data && data.length > 0) {
+        const roleMap: Record<string, UserRole> = {
+          'MOC_ADMIN': UserRole.ADMIN,
+          'COACH': UserRole.COACH,
+          'UNIT_OPERATOR': UserRole.OPERATOR,
+        };
+        const mappedUsers: User[] = data.map((p: any) => ({
+          id: p.id,
+          name: p.name || '未命名',
+          email: '',
+          role: roleMap[p.role] || UserRole.OPERATOR,
+          unitId: p.unit_id || '',
+          unitName: p.unit_name || '',
+          assignedProjectIds: [],
+          createdAt: p.created_at,
+        }));
+        setUsers(mappedUsers);
+      }
+    } catch (err) {
+      console.error('loadUsers error:', err);
+    }
+  }, []);
+
+  // ─── 監聽 Supabase Auth 狀態（頁面重整後自動恢復登入）────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
@@ -216,12 +249,13 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 登入後載入計畫
+  // 登入後載入計畫和用戶
   useEffect(() => {
     if (currentUser) {
       loadProjects();
+      loadUsers();
     }
-  }, [currentUser, loadProjects]);
+  }, [currentUser, loadProjects, loadUsers]);
 
   // 處理用戶登錄
   const handleLogin = (user: User) => {
@@ -758,9 +792,6 @@ const App: React.FC = () => {
                   }}
                   currentUserRole={currentUser.role}
                 />
-              )}
-              {activeTab === 'accounts' && isAdmin && (
-                <AccountManagement currentUser={currentUser} projects={projects} />
               )}
               {activeTab === 'permissions' && isAdmin && (
                 <PermissionManagement projects={projects} users={users} onUsersChange={handleUsersChange} onBack={() => setActiveTab('dashboard')} />

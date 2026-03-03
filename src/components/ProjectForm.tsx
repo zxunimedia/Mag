@@ -413,11 +413,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               </div>
             </div>
 
-            {/* 計畫狀態（管理員可改，操作人員唯讀） */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">計畫狀態</label>
-                {isAdmin ? (
+            {/* 計畫狀態（僅管理員可見與設定） */}
+            {isAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">
+                    計畫狀態
+                    <span className="ml-2 text-xs text-blue-400 normal-case font-bold">（管理員設定）</span>
+                  </label>
                   <select
                     className="form-input"
                     value={formData.status || ProjectStatus.PLANNING}
@@ -427,25 +430,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                ) : (
-                  <div className="form-input bg-slate-50 text-slate-500 cursor-not-allowed">
-                    {formData.status || ProjectStatus.PLANNING}
-                    <span className="ml-2 text-xs text-slate-400">（由管理員設定）</span>
-                  </div>
-                )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <label htmlFor="village" className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">部落 / 村落名稱</label>
-                <input
-                  id="village"
-                  type="text"
-                  className="form-input"
-                  placeholder="請輸入部落或村落名稱..."
-                  value={formData.village || ''}
-                  onChange={e => setFormData({ ...formData, village: e.target.value })}
-                />
-              </div>
-            </div>
+            )}
 
             {/* 計畫代表人 */}
             {renderContactSection("計畫代表人", "representative", UserCircle, formData.representative as ContactInfo)}
@@ -487,7 +474,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               <div className="p-6 bg-purple-50/50 rounded-xl border border-purple-100 space-y-5">
                 {/* 原鄉文化行動計畫類 */}
                 <div className="space-y-3">
-                  <p className="text-sm font-black text-slate-700">■ 1. 原鄉文化行動計畫類</p>
+                  <p className="text-sm font-black text-slate-700">1. 原鄉文化行動計畫類</p>
                   <div className="flex flex-col sm:flex-row gap-4 pl-6">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <input
@@ -513,7 +500,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 </div>
                 {/* 都市文化行動計畫類 */}
                 <div className="space-y-3">
-                  <p className="text-sm font-black text-slate-700">■ 2. 都市文化行動計畫類</p>
+                  <p className="text-sm font-black text-slate-700">2. 都市文化行動計畫類</p>
                   <div className="flex flex-col sm:flex-row gap-4 pl-6">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <input
@@ -547,130 +534,141 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
 
             {/* 實施地點 */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 flex items-center gap-2">
-                  <MapPin size={16} className="text-emerald-500" /> 實施地點類型
-                </label>
-              </div>
-              {/* 類型選擇 */}
-              <div className="flex items-center gap-6 p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                <span className="text-sm font-bold text-slate-600">實施地點類型：</span>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.siteTypes?.includes('原鄉')}
-                    onChange={(e) => {
-                      const newTypes = e.target.checked
-                        ? [...(formData.siteTypes || []), '原鄉']
-                        : (formData.siteTypes || []).filter(t => t !== '原鄉');
-                      if (newTypes.length > 0) {
-                        setFormData({ ...formData, siteTypes: newTypes as ('原鄉' | '都市')[], sites: [''] });
-                      }
-                    }}
-                    className="w-4 h-4 accent-emerald-600 rounded"
-                  />
-                  <span className="text-sm font-bold">原鄉（填寫原住民鄉鎮）</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.siteTypes?.includes('都市')}
-                    onChange={(e) => {
-                      const newTypes = e.target.checked
-                        ? [...(formData.siteTypes || []), '都市']
-                        : (formData.siteTypes || []).filter(t => t !== '都市');
-                      if (newTypes.length > 0) {
-                        setFormData({ ...formData, siteTypes: newTypes as ('原鄉' | '都市')[], sites: [''] });
-                      }
-                    }}
-                    className="w-4 h-4 accent-emerald-600 rounded"
-                  />
-                  <span className="text-sm font-bold">都市（填寫縣市 + 鄉鎮市區）</span>
-                </label>
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 flex items-center gap-2">
+                <MapPin size={16} className="text-emerald-500" /> 實施地點
+              </label>
+
+              {/* 步驟 1：單選原鄉 / 都市 */}
+              <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 space-y-2">
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">步驟 1：選擇實施地點類型</p>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="siteType"
+                      checked={formData.siteTypes?.[0] === '原鄉'}
+                      onChange={() => setFormData({ ...formData, siteTypes: ['原鄉'], sites: [''] })}
+                      className="w-4 h-4 accent-emerald-600"
+                    />
+                    <span className="text-sm font-bold">原鄉</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="siteType"
+                      checked={formData.siteTypes?.[0] === '都市'}
+                      onChange={() => setFormData({ ...formData, siteTypes: ['都市'], sites: [''] })}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className="text-sm font-bold">都市</span>
+                  </label>
+                </div>
               </div>
 
-              {/* 地點清單 */}
-              <div className="space-y-3">
-                {formData.siteTypes?.includes('原鄉') && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-black text-emerald-600 pl-1">原鄉地點：</p>
-                    {(formData.sites || ['']).map((site, idx) => (
-                      <div key={`site-rural-${idx}`} className="flex items-center gap-3">
+              {/* 步驟 2：依類型顯示地點選擇 */}
+              {formData.siteTypes?.[0] === '原鄉' && (
+                <div className="space-y-3">
+                  <p className="text-xs font-black text-emerald-600 pl-1">步驟 2：選擇原住民鄉鎮，選完後按「新增地點」</p>
+                  {(formData.sites || ['']).map((site, idx) => (
+                    <div key={`site-rural-${idx}`} className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <select
+                          className="form-input w-full appearance-none pr-10"
+                          value={site}
+                          onChange={e => updateSite(idx, e.target.value)}
+                        >
+                          <option value="">―― 選擇原住民鄉鎮 ――</option>
+                          {ALL_INDIGENOUS_TOWNSHIPS.map(township => (
+                            <option key={township} value={township}>{township}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                      {(formData.sites?.length || 0) > 1 && (
+                        <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500" title="移除">
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={addSite}
+                    disabled={!formData.sites?.[formData.sites.length - 1]}
+                    className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1 mt-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={14} /> 新增地點
+                  </button>
+                </div>
+              )}
+
+              {formData.siteTypes?.[0] === '都市' && (
+                <div className="space-y-3">
+                  <p className="text-xs font-black text-blue-600 pl-1">步驟 2：選擇縣市 → 步驟 3：選擇鄉鎮市區，選完後按「新增地點」</p>
+                  {(formData.sites || ['']).map((site, idx) => {
+                    const cityMatch = site.match(/^(.+?(?:市|縣))(.*)$/);
+                    const selectedCity = cityMatch ? cityMatch[1] : '';
+                    const selectedDistrict = cityMatch ? cityMatch[2] : '';
+                    const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
+                    return (
+                      <div key={`site-urban-${idx}`} className="flex items-center gap-3">
                         <div className="relative flex-1">
                           <select
                             className="form-input w-full appearance-none pr-10"
-                            value={site}
+                            value={selectedCity}
                             onChange={e => updateSite(idx, e.target.value)}
                           >
-                            <option value="">選擇原住民鄉鎮</option>
-                            {ALL_INDIGENOUS_TOWNSHIPS.map(township => (
-                              <option key={township} value={township}>{township}</option>
+                            <option value="">―― 選擇縣市 ――</option>
+                            {TAIWAN_CITIES.map(city => (
+                              <option key={city} value={city}>{city}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                        <div className="relative flex-1">
+                          <select
+                            className="form-input w-full appearance-none pr-10"
+                            value={selectedDistrict}
+                            onChange={e => updateSite(idx, selectedCity + e.target.value)}
+                            disabled={!selectedCity}
+                          >
+                            <option value="">{selectedCity ? '―― 選擇鄉鎮市區 ――' : '請先選縣市'}</option>
+                            {districts.map(district => (
+                              <option key={district} value={district}>{district}</option>
                             ))}
                           </select>
                           <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
                         {(formData.sites?.length || 0) > 1 && (
-                          <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500">
+                          <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500" title="移除">
                             <Trash2 size={18} />
                           </button>
                         )}
                       </div>
+                    );
+                  })}
+                  <button
+                    onClick={addSite}
+                    disabled={!formData.sites?.[formData.sites.length - 1]?.match(/(?:市|縣).+/)}
+                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black hover:bg-blue-100 flex items-center gap-1 mt-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={14} /> 新增地點
+                  </button>
+                </div>
+              )}
+
+              {/* 已新增地點清單預覽 */}
+              {(formData.sites || []).filter(s => s).length > 0 && (
+                <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-xs font-black text-slate-400 mb-2">已選地點：</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(formData.sites || []).filter(s => s).map((site, idx) => (
+                      <span key={idx} className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                        {site}
+                      </span>
                     ))}
                   </div>
-                )}
-
-                {formData.siteTypes?.includes('都市') && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-black text-blue-600 pl-1">都市地點：</p>
-                    {(formData.sites || ['']).map((site, idx) => {
-                      const parts = site.split(/(?<=市|縣)/);
-                      const selectedCity = parts[0] || '';
-                      const selectedDistrict = parts[1] || '';
-                      const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
-                      return (
-                        <div key={`site-urban-${idx}`} className="flex items-center gap-3">
-                          <div className="relative flex-1">
-                            <select
-                              className="form-input w-full appearance-none pr-10"
-                              value={selectedCity}
-                              onChange={e => updateSite(idx, e.target.value)}
-                            >
-                              <option value="">選擇縣市</option>
-                              {TAIWAN_CITIES.map(city => (
-                                <option key={city} value={city}>{city}</option>
-                              ))}
-                            </select>
-                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                          </div>
-                          <div className="relative flex-1">
-                            <select
-                              className="form-input w-full appearance-none pr-10"
-                              value={selectedDistrict}
-                              onChange={e => updateSite(idx, selectedCity + e.target.value)}
-                              disabled={!selectedCity}
-                            >
-                              <option value="">請選擇鄉鎮市區</option>
-                              {districts.map(district => (
-                                <option key={district} value={district}>{district}</option>
-                              ))}
-                            </select>
-                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                          </div>
-                          {(formData.sites?.length || 0) > 1 && (
-                            <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500">
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <button onClick={addSite} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1 mt-2">
-                  <Plus size={14} /> 新增地點
-                </button>
-              </div>
+                </div>
+              )}
             </div>
 
             {/* 申請金額 / 核定金額（千分位格式，純數字輸入） */}

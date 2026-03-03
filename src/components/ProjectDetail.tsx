@@ -202,11 +202,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, reports, onBack 
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         item.category === BudgetCategory.PERSONNEL ? 'bg-blue-100 text-blue-700' :
-                        item.category === BudgetCategory.BUSINESS ? 'bg-green-100 text-green-700' :
+                        item.category === BudgetCategory.OPERATING ? 'bg-green-100 text-green-700' :
+                        item.category === BudgetCategory.MISCELLANEOUS ? 'bg-amber-100 text-amber-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
                         {item.category === BudgetCategory.PERSONNEL ? '人事費' :
-                         item.category === BudgetCategory.BUSINESS ? '業務費' : '其他'}
+                         item.category === BudgetCategory.OPERATING ? '業務費' :
+                         item.category === BudgetCategory.MISCELLANEOUS ? '雜支' : item.category}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{item.name}</td>

@@ -117,7 +117,8 @@ export interface CoachingRecord {
   id: string; 
   projectId: string;
   serialNumber: string; 
-  location: string;
+  location: string;         // 訪視地點（輔導老師版：訪視時的地點）
+  executionLocation?: string; // 計畫執行地點（輔導老師版專用）
   frequency: string;
   method: '實地訪視' | '視訊' | '電話' | '其他';
   writer: string;

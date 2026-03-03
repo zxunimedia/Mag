@@ -90,6 +90,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       projectId: selectedProjectId,
       serialNumber: serial,
       location: location,
+      executionLocation: location,
       frequency: (filteredRecords.length + 1).toString(),
       method: '實地訪視',
       writer: isCoach ? '輔導老師' : '管理員',
@@ -163,7 +164,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
             </td>
             <td className="record-header w-28">訪視地點</td>
             <td className="record-cell">
-              <input type="text" className="record-input" value={editingRecord?.location} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫地點..." disabled={!canEditForm} />
+              <input type="text" className="record-input" value={editingRecord?.location || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫本次訪視的地點..." disabled={!canEditForm} />
             </td>
           </tr>
           {/* 受訪單位 & 計畫名稱 */}
@@ -177,7 +178,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
           <tr>
             <td className="record-header">計畫執行地點</td>
             <td colSpan={3} className="record-cell">
-              <input type="text" className="record-input" value={editingRecord?.location || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, location: e.target.value})} placeholder="請填寫計畫執行地點..." disabled={!canEditForm} />
+              <input type="text" className="record-input" value={editingRecord?.executionLocation || ''} onChange={e => canEditForm && setEditingRecord({...editingRecord!, executionLocation: e.target.value})} placeholder="請填寫計畫執行地點（如：拔馬部落文化發展協會）..." disabled={!canEditForm} />
             </td>
           </tr>
           {/* 參與人員 */}

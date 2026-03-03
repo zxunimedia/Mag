@@ -157,21 +157,31 @@ const GrantProgress: React.FC<GrantProgressProps> = ({ projects, onUpdateProject
 
   return (
     <div className="max-w-4xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 px-2">
-        <div className="space-y-1">
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">補助款撥付進度</h2>
-          <p className="text-slate-400 font-bold text-sm">追蹤各期款項文件檢核與撥付狀態。</p>
+      {/* 選擇計畫區塊（醒目設計，明確提示下方內容會同步更新） */}
+      <div className="bg-blue-600 rounded-[32px] p-6 shadow-xl">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-white">
+            <h2 className="text-2xl font-black tracking-tight">補助款撥付進度</h2>
+            <p className="text-blue-200 text-sm font-bold mt-1">選擇計畫，下方內容自動同步更新</p>
+          </div>
+          <div className="relative w-full max-w-sm">
+            <select 
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="w-full bg-white border-2 border-blue-300 rounded-2xl px-6 py-4 font-black text-slate-700 outline-none shadow-lg appearance-none focus:ring-4 focus:ring-white/30"
+            >
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+          </div>
         </div>
-        <div className="relative w-full max-w-xs">
-           <select 
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 outline-none shadow-sm appearance-none"
-          >
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-        </div>
+        {selectedProject && (
+          <div className="mt-4 pt-4 border-t border-blue-500 flex flex-wrap gap-4 text-sm">
+            <span className="text-blue-200 font-bold">執行單位：<span className="text-white">{selectedProject.executingUnit}</span></span>
+            <span className="text-blue-200 font-bold">年度：<span className="text-white">{selectedProject.year}</span></span>
+            <span className="text-blue-200 font-bold">核定補助額：<span className="text-white">{selectedProject.approvedAmount?.toLocaleString() || '—'} 元</span></span>
+          </div>
+        )}
       </div>
 
       {/* 撥付進度總覽表格 */}
