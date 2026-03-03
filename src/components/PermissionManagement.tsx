@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Project } from '../types';
 import { supabase } from '../services/supabaseClient';
-import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2, Circle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 interface PermissionManagementProps {
   projects: Project[];

@@ -360,7 +360,10 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
         <tbody>
           {/* 表格標題 */}
           <tr>
-            <td colSpan={6} className="text-center py-4 bg-white border-b-2 border-slate-300 text-2xl font-black tracking-[0.2em] text-slate-700">訪視輔導紀錄表</td>
+            <td colSpan={6} className="text-center py-4 bg-white border-b-2 border-slate-300">
+              <div className="text-lg font-black text-slate-700">文化部「原住民村落文化發展計畫」</div>
+              <div className="text-2xl font-black tracking-[0.2em] text-slate-700 mt-1">訪視輔導與管考紀錄表</div>
+            </td>
           </tr>
           {/* 單位名稱 & 計畫名稱 */}
           <tr>
@@ -655,7 +658,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
                   {record.writer && (
                     <div className="flex items-center gap-2 pt-1">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isCoachRecord(record) ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {isCoachRecord(record) ? '輔導老師' : '輔導團隊'}
+                        {isCoachRecord(record) ? '輔導老師' : '訪視輔導與管考'}
                       </span>
                       <span className="text-xs font-bold text-slate-400">填寫人：{record.writer}</span>
                     </div>
@@ -684,7 +687,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
           return false;
         })();
         
-        const modalTitle = recordType === 'coach' ? '輔導老師訪視紀錄表' : '訪視輔導紀錄表';
+        const modalTitle = recordType === 'coach' ? '輔導老師訪視紀錄表' : '訪視輔導與管考紀錄表';
         
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -693,7 +696,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
               <div className="flex items-center gap-4">
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">{modalTitle}</h3>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${recordType === 'coach' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                  {recordType === 'coach' ? '輔導老師版' : '輔導團隊版'}
+                  {recordType === 'coach' ? '輔導老師版' : '訪視輔導與管考版'}
                 </span>
                 {isOperator && (
                   <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">

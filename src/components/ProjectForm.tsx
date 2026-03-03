@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
-import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, GrantStage, GrantDocStatus, BudgetItem, BudgetCategory, Vision, UserRole } from '../types';
-import { Plus, Trash2, Save, ArrowLeft, PlusCircle, UserCircle, LayoutGrid, Clock, Target, Eye, Calculator, List, MapPin, Building, Phone, Mail, DollarSign, Users, Layers, ChevronDown } from 'lucide-react';
+import { Project, Objective, ProjectStatus, KRStatus, KeyResult, ContactInfo, BudgetItem, BudgetCategory, Vision, UserRole } from '../types';
+import { Plus, Trash2, Save, ArrowLeft, PlusCircle, UserCircle, Clock, Target, Calculator, MapPin, Building, DollarSign, Users, Layers, ChevronDown } from 'lucide-react';
 import { ALL_INDIGENOUS_TOWNSHIPS, TAIWAN_CITIES, getDistrictsByCity } from '../data/taiwanLocations';
 
 interface ProjectFormProps {
@@ -72,25 +72,44 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     }));
   }, []);
 
-  // 實施地點操作
-  const addSite = () => {
-    const newSite = formData.siteTypes?.includes('原鄉') && !formData.siteTypes?.includes('都市')
-      ? ALL_INDIGENOUS_TOWNSHIPS[0] || ''
-      : formData.siteTypes?.includes('都市') && !formData.siteTypes?.includes('原鄉')
-      ? TAIWAN_CITIES[0] || ''
-      : '';
-    setFormData({ ...formData, sites: [...(formData.sites || []), newSite] });
-  };
+  // 實施地點操作：暫存選擇中的地點
+  const [pendingRuralSite, setPendingRuralSite] = useState<string>('');
+  const [pendingUrbanCity, setPendingUrbanCity] = useState<string>('');
+  const [pendingUrbanDistrict, setPendingUrbanDistrict] = useState<string>('');
+  const [siteError, setSiteError] = useState<string>('');
 
-  const updateSite = (index: number, value: string) => {
-    const newSites = [...(formData.sites || [])];
-    newSites[index] = value;
-    setFormData({ ...formData, sites: newSites });
+  const addSite = () => {
+    const siteType = formData.siteTypes?.[0];
+    if (siteType === '原鄉') {
+      if (!pendingRuralSite) {
+        setSiteError('請先選擇原住民鄉鎮');
+        return;
+      }
+      const newSites = [...(formData.sites || []).filter(s => s), pendingRuralSite];
+      setFormData({ ...formData, sites: newSites });
+      setPendingRuralSite('');
+      setSiteError('');
+    } else if (siteType === '都市') {
+      if (!pendingUrbanCity) {
+        setSiteError('請先選擇縣市');
+        return;
+      }
+      if (!pendingUrbanDistrict) {
+        setSiteError('請先選擇鄉鎮市區');
+        return;
+      }
+      const newSite = pendingUrbanCity + pendingUrbanDistrict;
+      const newSites = [...(formData.sites || []).filter(s => s), newSite];
+      setFormData({ ...formData, sites: newSites });
+      setPendingUrbanCity('');
+      setPendingUrbanDistrict('');
+      setSiteError('');
+    }
   };
 
   const removeSite = (index: number) => {
-    const newSites = (formData.sites || []).filter((_, i) => i !== index);
-    setFormData({ ...formData, sites: newSites.length > 0 ? newSites : [''] });
+    const newSites = (formData.sites || []).filter(s => s).filter((_, i) => i !== index);
+    setFormData({ ...formData, sites: newSites });
   };
 
   // 預算操作
@@ -547,7 +566,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                       type="radio"
                       name="siteType"
                       checked={formData.siteTypes?.[0] === '原鄉'}
-                      onChange={() => setFormData({ ...formData, siteTypes: ['原鄉'], sites: [''] })}
+                      onChange={() => { setFormData({ ...formData, siteTypes: ['原鄉'], sites: [] }); setPendingRuralSite(''); setPendingUrbanCity(''); setPendingUrbanDistrict(''); setSiteError(''); }}
                       className="w-4 h-4 accent-emerald-600"
                     />
                     <span className="text-sm font-bold">原鄉</span>
@@ -557,7 +576,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                       type="radio"
                       name="siteType"
                       checked={formData.siteTypes?.[0] === '都市'}
-                      onChange={() => setFormData({ ...formData, siteTypes: ['都市'], sites: [''] })}
+                      onChange={() => { setFormData({ ...formData, siteTypes: ['都市'], sites: [] }); setPendingRuralSite(''); setPendingUrbanCity(''); setPendingUrbanDistrict(''); setSiteError(''); }}
                       className="w-4 h-4 accent-blue-600"
                     />
                     <span className="text-sm font-bold">都市</span>
@@ -568,102 +587,87 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               {/* 步驟 2：依類型顯示地點選擇 */}
               {formData.siteTypes?.[0] === '原鄉' && (
                 <div className="space-y-3">
-                  <p className="text-xs font-black text-emerald-600 pl-1">步驟 2：選擇原住民鄉鎮，選完後按「新增地點」</p>
-                  {(formData.sites || ['']).map((site, idx) => (
-                    <div key={`site-rural-${idx}`} className="flex items-center gap-3">
-                      <div className="relative flex-1">
-                        <select
-                          className="form-input w-full appearance-none pr-10"
-                          value={site}
-                          onChange={e => updateSite(idx, e.target.value)}
-                        >
-                          <option value="">―― 選擇原住民鄉鎮 ――</option>
-                          {ALL_INDIGENOUS_TOWNSHIPS.map(township => (
-                            <option key={township} value={township}>{township}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                      </div>
-                      {(formData.sites?.length || 0) > 1 && (
-                        <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500" title="移除">
-                          <Trash2 size={18} />
-                        </button>
-                      )}
+                  <p className="text-xs font-black text-emerald-600 pl-1">步驟 2：從下拉選擇原住民鄉鎮 → 步驟 3：按「新增地點」加入清單</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <select
+                        className="form-input w-full appearance-none pr-10"
+                        value={pendingRuralSite}
+                        onChange={e => { setPendingRuralSite(e.target.value); setSiteError(''); }}
+                      >
+                        <option value="">―― 選擇原住民鄉鎮 ――</option>
+                        {ALL_INDIGENOUS_TOWNSHIPS.map(township => (
+                          <option key={township} value={township}>{township}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
-                  ))}
-                  <button
-                    onClick={addSite}
-                    disabled={!formData.sites?.[formData.sites.length - 1]}
-                    className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-black hover:bg-emerald-100 flex items-center gap-1 mt-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Plus size={14} /> 新增地點
-                  </button>
+                    <button
+                      onClick={addSite}
+                      disabled={!pendingRuralSite}
+                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      <Plus size={14} /> 新增地點
+                    </button>
+                  </div>
+                  {siteError && <p className="text-xs font-bold text-red-500 pl-1">{siteError}</p>}
                 </div>
               )}
 
               {formData.siteTypes?.[0] === '都市' && (
                 <div className="space-y-3">
-                  <p className="text-xs font-black text-blue-600 pl-1">步驟 2：選擇縣市 → 步驟 3：選擇鄉鎮市區，選完後按「新增地點」</p>
-                  {(formData.sites || ['']).map((site, idx) => {
-                    const cityMatch = site.match(/^(.+?(?:市|縣))(.*)$/);
-                    const selectedCity = cityMatch ? cityMatch[1] : '';
-                    const selectedDistrict = cityMatch ? cityMatch[2] : '';
-                    const districts = selectedCity ? getDistrictsByCity(selectedCity) : [];
-                    return (
-                      <div key={`site-urban-${idx}`} className="flex items-center gap-3">
-                        <div className="relative flex-1">
-                          <select
-                            className="form-input w-full appearance-none pr-10"
-                            value={selectedCity}
-                            onChange={e => updateSite(idx, e.target.value)}
-                          >
-                            <option value="">―― 選擇縣市 ――</option>
-                            {TAIWAN_CITIES.map(city => (
-                              <option key={city} value={city}>{city}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                        <div className="relative flex-1">
-                          <select
-                            className="form-input w-full appearance-none pr-10"
-                            value={selectedDistrict}
-                            onChange={e => updateSite(idx, selectedCity + e.target.value)}
-                            disabled={!selectedCity}
-                          >
-                            <option value="">{selectedCity ? '―― 選擇鄉鎮市區 ――' : '請先選縣市'}</option>
-                            {districts.map(district => (
-                              <option key={district} value={district}>{district}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                        {(formData.sites?.length || 0) > 1 && (
-                          <button onClick={() => removeSite(idx)} className="p-2 text-red-300 hover:text-red-500" title="移除">
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <button
-                    onClick={addSite}
-                    disabled={!formData.sites?.[formData.sites.length - 1]?.match(/(?:市|縣).+/)}
-                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black hover:bg-blue-100 flex items-center gap-1 mt-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Plus size={14} /> 新增地點
-                  </button>
+                  <p className="text-xs font-black text-blue-600 pl-1">步驟 2：選擇縣市 → 步驟 3：選擇鄉鎮市區 → 步驟 4：按「新增地點」加入清單</p>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <select
+                        className="form-input w-full appearance-none pr-10"
+                        value={pendingUrbanCity}
+                        onChange={e => { setPendingUrbanCity(e.target.value); setPendingUrbanDistrict(''); setSiteError(''); }}
+                      >
+                        <option value="">―― 選擇縣市 ――</option>
+                        {TAIWAN_CITIES.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <div className="relative flex-1">
+                      <select
+                        className="form-input w-full appearance-none pr-10"
+                        value={pendingUrbanDistrict}
+                        onChange={e => { setPendingUrbanDistrict(e.target.value); setSiteError(''); }}
+                        disabled={!pendingUrbanCity}
+                      >
+                        <option value="">{pendingUrbanCity ? '―― 選擇鄉鎮市區 ――' : '請先選縣市'}</option>
+                        {(pendingUrbanCity ? getDistrictsByCity(pendingUrbanCity) : []).map(district => (
+                          <option key={district} value={district}>{district}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <button
+                      onClick={addSite}
+                      disabled={!pendingUrbanCity || !pendingUrbanDistrict}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-xl text-xs font-black hover:bg-blue-600 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      <Plus size={14} /> 新增地點
+                    </button>
+                  </div>
+                  {siteError && <p className="text-xs font-bold text-red-500 pl-1">{siteError}</p>}
                 </div>
               )}
 
               {/* 已新增地點清單預覽 */}
               {(formData.sites || []).filter(s => s).length > 0 && (
                 <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-xs font-black text-slate-400 mb-2">已選地點：</p>
+                  <p className="text-xs font-black text-slate-400 mb-2">已新增地點：</p>
                   <div className="flex flex-wrap gap-2">
                     {(formData.sites || []).filter(s => s).map((site, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
+                      <span key={idx} className="flex items-center gap-1 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                         {site}
+                        <button onClick={() => removeSite(idx)} className="text-red-300 hover:text-red-500 ml-1" title="移除">
+                          <Trash2 size={12} />
+                        </button>
                       </span>
                     ))}
                   </div>
