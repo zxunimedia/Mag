@@ -369,7 +369,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
               <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 space-y-4">
                 {/* 原鄉文化行動計畫類 */}
                 <div className="space-y-2">
-                  <p className="text-sm font-black text-slate-700">■ 1. 原鄉文化行動計畫類：</p>
+                  <p className="text-sm font-black text-slate-700">1. 原鄉文化行動計畫類：</p>
                   <div className="flex items-center gap-6 pl-6">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -379,7 +379,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         onChange={() => setFormData({ ...formData, category: '原鄉文化行動-無涉產業及就業' })} 
                         className="w-4 h-4 text-purple-600"
                       />
-                      <span className="text-sm font-bold text-slate-600">□ (1) 無涉產業及就業</span>
+                      <span className="text-sm font-bold text-slate-600">(1) 無涉產業及就業</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -389,13 +389,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         onChange={() => setFormData({ ...formData, category: '原鄉文化行動-涉及產業及就業' })} 
                         className="w-4 h-4 text-purple-600"
                       />
-                      <span className="text-sm font-bold text-slate-600">□ (2) 涉及產業及就業</span>
+                      <span className="text-sm font-bold text-slate-600">(2) 涉及產業及就業</span>
                     </label>
                   </div>
                 </div>
                 {/* 都市文化行動計畫類 */}
                 <div className="space-y-2">
-                  <p className="text-sm font-black text-slate-700">□ 2. 都市文化行動計畫類：</p>
+                  <p className="text-sm font-black text-slate-700">2. 都市文化行動計畫類：</p>
                   <div className="flex items-center gap-6 pl-6">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -405,7 +405,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         onChange={() => setFormData({ ...formData, category: '都市文化行動-無涉產業及就業' })} 
                         className="w-4 h-4 text-purple-600"
                       />
-                      <span className="text-sm font-bold text-slate-600">□ (1) 無涉產業及就業</span>
+                      <span className="text-sm font-bold text-slate-600">(1) 無涉產業及就業</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
@@ -415,7 +415,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                         onChange={() => setFormData({ ...formData, category: '都市文化行動-涉及產業及就業' })} 
                         className="w-4 h-4 text-purple-600"
                       />
-                      <span className="text-sm font-bold text-slate-600">□ (2) 涉及產業及就業</span>
+                      <span className="text-sm font-bold text-slate-600">(2) 涉及產業及就業</span>
                     </label>
                   </div>
                 </div>
