@@ -72,39 +72,41 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
     }));
   }, []);
 
-  // 實施地點操作：暫存選擇中的地點
+  // 實施地點操作：支持原鄉和都市同時選擇
   const [pendingRuralSite, setPendingRuralSite] = useState<string>('');
   const [pendingUrbanCity, setPendingUrbanCity] = useState<string>('');
   const [pendingUrbanDistrict, setPendingUrbanDistrict] = useState<string>('');
   const [siteError, setSiteError] = useState<string>('');
 
-  const addSite = () => {
-    const siteType = formData.siteTypes?.[0];
-    if (siteType === '原鄉') {
-      if (!pendingRuralSite) {
-        setSiteError('請先選擇原住民鄉鎮');
-        return;
-      }
-      const newSites = [...(formData.sites || []).filter(s => s), pendingRuralSite];
-      setFormData({ ...formData, sites: newSites });
-      setPendingRuralSite('');
-      setSiteError('');
-    } else if (siteType === '都市') {
-      if (!pendingUrbanCity) {
-        setSiteError('請先選擇縣市');
-        return;
-      }
-      if (!pendingUrbanDistrict) {
-        setSiteError('請先選擇鄉鎮市區');
-        return;
-      }
-      const newSite = pendingUrbanCity + pendingUrbanDistrict;
-      const newSites = [...(formData.sites || []).filter(s => s), newSite];
-      setFormData({ ...formData, sites: newSites });
-      setPendingUrbanCity('');
-      setPendingUrbanDistrict('');
-      setSiteError('');
+  // 添加原鄉地點
+  const addRuralSite = () => {
+    if (!pendingRuralSite) {
+      setSiteError('請先選擇原住民鄉鎮');
+      return;
     }
+    const newSite = `原鄉：${pendingRuralSite}`;
+    const newSites = [...(formData.sites || []).filter(s => s), newSite];
+    setFormData({ ...formData, sites: newSites });
+    setPendingRuralSite('');
+    setSiteError('');
+  };
+
+  // 添加都市地點
+  const addUrbanSite = () => {
+    if (!pendingUrbanCity) {
+      setSiteError('請先選擇縣市');
+      return;
+    }
+    if (!pendingUrbanDistrict) {
+      setSiteError('請先選擇鄉鎮市區');
+      return;
+    }
+    const newSite = `都市：${pendingUrbanCity}${pendingUrbanDistrict}`;
+    const newSites = [...(formData.sites || []).filter(s => s), newSite];
+    setFormData({ ...formData, sites: newSites });
+    setPendingUrbanCity('');
+    setPendingUrbanDistrict('');
+    setSiteError('');
   };
 
   const removeSite = (index: number) => {
@@ -557,26 +559,40 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 <MapPin size={16} className="text-emerald-500" /> 實施地點
               </label>
 
-              {/* 步驟 1：單選原鄉 / 都市 */}
+              {/* 步驟 1：可同時選擇原鄉和都市 */}
               <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 space-y-2">
-                <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">步驟 1：選擇實施地點類型</p>
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">步驟 1：選擇實施地點類型（可複選）</p>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="radio"
-                      name="siteType"
-                      checked={formData.siteTypes?.[0] === '原鄉'}
-                      onChange={() => { setFormData({ ...formData, siteTypes: ['原鄉'], sites: [] }); setPendingRuralSite(''); setPendingUrbanCity(''); setPendingUrbanDistrict(''); setSiteError(''); }}
+                      type="checkbox"
+                      checked={formData.siteTypes?.includes('原鄉') || false}
+                      onChange={(e) => {
+                        const siteTypes = formData.siteTypes || [];
+                        if (e.target.checked) {
+                          setFormData({ ...formData, siteTypes: [...siteTypes, '原鄉'] });
+                        } else {
+                          setFormData({ ...formData, siteTypes: siteTypes.filter(t => t !== '原鄉') });
+                        }
+                        setSiteError('');
+                      }}
                       className="w-4 h-4 accent-emerald-600"
                     />
                     <span className="text-sm font-bold">原鄉</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="radio"
-                      name="siteType"
-                      checked={formData.siteTypes?.[0] === '都市'}
-                      onChange={() => { setFormData({ ...formData, siteTypes: ['都市'], sites: [] }); setPendingRuralSite(''); setPendingUrbanCity(''); setPendingUrbanDistrict(''); setSiteError(''); }}
+                      type="checkbox"
+                      checked={formData.siteTypes?.includes('都市') || false}
+                      onChange={(e) => {
+                        const siteTypes = formData.siteTypes || [];
+                        if (e.target.checked) {
+                          setFormData({ ...formData, siteTypes: [...siteTypes, '都市'] });
+                        } else {
+                          setFormData({ ...formData, siteTypes: siteTypes.filter(t => t !== '都市') });
+                        }
+                        setSiteError('');
+                      }}
                       className="w-4 h-4 accent-blue-600"
                     />
                     <span className="text-sm font-bold">都市</span>
@@ -584,10 +600,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                 </div>
               </div>
 
-              {/* 步驟 2：依類型顯示地點選擇 */}
-              {formData.siteTypes?.[0] === '原鄉' && (
+              {/* 步驟 2：原鄉地點選擇 */}
+              {formData.siteTypes?.includes('原鄉') && (
                 <div className="space-y-3">
-                  <p className="text-xs font-black text-emerald-600 pl-1">步驟 2：從下拉選擇原住民鄉鎮 → 步驟 3：按「新增地點」加入清單</p>
+                  <p className="text-xs font-black text-emerald-600 pl-1">原鄉地點：選擇原住民鄉鎮 → 按「新增原鄉地點」</p>
                   <div className="flex items-center gap-3">
                     <div className="relative flex-1">
                       <select
@@ -603,20 +619,20 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                       <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
                     <button
-                      onClick={addSite}
+                      onClick={addRuralSite}
                       disabled={!pendingRuralSite}
                       className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                     >
-                      <Plus size={14} /> 新增地點
+                      <Plus size={14} /> 新增原鄉地點
                     </button>
                   </div>
-                  {siteError && <p className="text-xs font-bold text-red-500 pl-1">{siteError}</p>}
                 </div>
               )}
 
-              {formData.siteTypes?.[0] === '都市' && (
+              {/* 步驟 3：都市地點選擇 */}
+              {formData.siteTypes?.includes('都市') && (
                 <div className="space-y-3">
-                  <p className="text-xs font-black text-blue-600 pl-1">步驟 2：選擇縣市 → 步驟 3：選擇鄉鎮市區 → 步驟 4：按「新增地點」加入清單</p>
+                  <p className="text-xs font-black text-blue-600 pl-1">都市地點：選擇縣市 → 鄉鎮市區 → 按「新增都市地點」</p>
                   <div className="flex items-center gap-3">
                     <div className="relative flex-1">
                       <select
@@ -646,16 +662,18 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onBack, onSave, curr
                       <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
                     <button
-                      onClick={addSite}
+                      onClick={addUrbanSite}
                       disabled={!pendingUrbanCity || !pendingUrbanDistrict}
                       className="px-4 py-2 bg-blue-500 text-white rounded-xl text-xs font-black hover:bg-blue-600 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                     >
-                      <Plus size={14} /> 新增地點
+                      <Plus size={14} /> 新增都市地點
                     </button>
                   </div>
-                  {siteError && <p className="text-xs font-bold text-red-500 pl-1">{siteError}</p>}
                 </div>
               )}
+
+              {/* 錯誤提示 */}
+              {siteError && <p className="text-xs font-bold text-red-500 pl-1">{siteError}</p>}
 
               {/* 已新增地點清單預覽 */}
               {(formData.sites || []).filter(s => s).length > 0 && (
