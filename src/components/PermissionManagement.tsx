@@ -51,6 +51,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
   const [users, setUsers] = useState<UserWithProjects[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [pendingConfirmationEmails, setPendingConfirmationEmails] = useState<string[]>([]);
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: '',
     email: '',
@@ -132,10 +133,48 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
       saveUsers(updated);
       setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
       setIsAddingUser(false);
-      alert(`帳號已建立！${authData.user?.email_confirmed_at ? '' : '（需要驗證 Email 才能登入）'}`);
+      
+      // 如果需要 email 確認，記錄 email 並顯示更詳細的訊息
+      if (authData.user && !authData.user.email_confirmed_at) {
+        setPendingConfirmationEmails(prev => [...prev, authData.user!.email!]);
+        alert(`✅ 帳號已建立！\n📧 確認信已發送至：${authData.user.email}\n\n⚠️  請提醒用戶：\n1. 檢查收件匣和垃圾信件匣\n2. 點擊確認信中的連結啟用帳號\n3. 如未收到，可使用下方「重新發送」功能`);
+      } else {
+        alert(`✅ 帳號已建立並啟用！`);
+      }
     } catch (err) {
       console.error('handleAddUser error:', err);
-      alert('建立帳號時發生錯誤，請稍後再試。');
+      const errorMessage = err instanceof Error ? err.message : '未知錯誤';
+      
+      if (errorMessage.includes('rate limit')) {
+        alert('⚠️  發送確認信過於頻繁，請稍後再試（約5-10分鐘）。\n\n這是 Supabase 的保護機制，功能正常。');
+      } else if (errorMessage.includes('User already registered')) {
+        alert('❌ 此 Email 已經註冊過，請使用其他 Email 地址。');
+      } else {
+        alert(`❌ 建立帳號失敗：${errorMessage}\n\n請檢查：\n1. Email 格式是否正確\n2. 密碼是否符合安全要求\n3. 網路連線是否正常`);
+      }
+    }
+  };
+
+  // 重新發送確認信
+  const handleResendConfirmation = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+      
+      if (error) {
+        if (error.message.includes('rate limit')) {
+          alert('⚠️  重新發送確認信過於頻繁，請稍後再試（約5-10分鐘）。');
+        } else {
+          alert(`❌ 重新發送失敗：${error.message}`);
+        }
+      } else {
+        alert(`✅ 確認信已重新發送至：${email}\n\n請檢查收件匣和垃圾信件匣。`);
+      }
+    } catch (err) {
+      console.error('Resend confirmation error:', err);
+      alert('重新發送確認信時發生錯誤，請稍後再試。');
     }
   };
 
@@ -342,6 +381,47 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
               >
                 <X size={16} /> 取消
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* 待確認 Email 列表 */}
+        {pendingConfirmationEmails.length > 0 && (
+          <div className="mb-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+              <Mail className="text-amber-600" size={16} />
+              待確認 Email ({pendingConfirmationEmails.length})
+            </h4>
+            <p className="text-sm text-amber-700 mb-4">
+              以下用戶需要確認 Email 才能登入系統：
+            </p>
+            <div className="space-y-2">
+              {pendingConfirmationEmails.map((email, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border border-amber-300">
+                  <div>
+                    <span className="font-medium text-gray-800">{email}</span>
+                    <p className="text-xs text-gray-500">等待 Email 確認</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResendConfirmation(email)}
+                      className="px-3 py-1 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 flex items-center gap-1"
+                    >
+                      <Mail size={12} />
+                      重新發送
+                    </button>
+                    <button
+                      onClick={() => setPendingConfirmationEmails(prev => prev.filter(e => e !== email))}
+                      className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
+                    >
+                      移除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 p-3 bg-amber-100 rounded text-xs text-amber-800">
+              <strong>💡 提醒：</strong> 請通知用戶檢查收件匣和垃圾信件匣，並點擊確認連結啟用帳號。
             </div>
           </div>
         )}
