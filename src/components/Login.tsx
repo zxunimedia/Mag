@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Mountain, Mail, Lock, Loader2, ArrowRight, ShieldCheck, Info } from 'lucide-react';
+import { Mountain, Mail, Lock, Loader2, ArrowRight, ShieldCheck, Info, UserPlus } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { supabase, getCurrentProfile, supabaseConfigured } from '../services/supabaseClient';
+import SelfRegistration from './SelfRegistration';
 
 interface LoginProps {
   onLogin: (user: User) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [view, setView] = useState<'LOGIN' | 'CONTACT'>('LOGIN');
+  const [view, setView] = useState<'LOGIN' | 'CONTACT' | 'REGISTER'>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -145,7 +146,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onClick={() => setView('CONTACT')}
                 className="text-xs font-bold text-gray-400 hover:text-gray-600"
               >
-                忘記密碼 / 申請帳號
+                忘記密碼？
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('REGISTER')}
+                className="text-xs font-bold text-blue-500 hover:text-blue-700 flex items-center gap-1"
+              >
+                <UserPlus size={12} />
+                申請新帳號
               </button>
             </div>
           </form>
@@ -162,12 +171,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
 
             <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-600">
-              <p className="font-black text-slate-700">本系統帳號由管理員統一管理，如需以下服務請聯繫管理員：</p>
+              <p className="font-black text-slate-700">如需密碼重設或其他帳號問題，請聯繫管理員：</p>
               <ul className="space-y-2 pl-4">
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
-                  申請新帳號
-                </li>
                 <li className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
                   重設登入密碼
@@ -176,10 +181,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
                   帳號權限調整
                 </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
+                  帳號狀態確認
+                </li>
               </ul>
               <div className="mt-4 p-4 bg-white rounded-xl border border-amber-100">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">管理員聯絡信箱</p>
                 <p className="text-amber-700 font-black text-base">mag@atipd.tw</p>
+              </div>
+              
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-slate-700 font-bold mb-2">💡 新用戶申請</p>
+                <p className="text-xs text-slate-500 mb-3">
+                  現在支援線上自助申請！您可以直接填寫申請表單，無需聯繫管理員。
+                </p>
+                <button
+                  onClick={() => setView('REGISTER')}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                >
+                  <UserPlus size={16} />
+                  立即申請新帳號
+                </button>
               </div>
             </div>
 
@@ -193,9 +216,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         )}
 
-        <div className="text-center">
-          <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">© 2026 MOC Indigenous Affairs Management</p>
-        </div>
+        {/* 自助註冊頁面 */}
+        {view === 'REGISTER' && (
+          <SelfRegistration 
+            onBack={() => setView('LOGIN')} 
+            onSuccess={() => setView('LOGIN')}
+            embedded={true}
+          />
+        )}
+
+        {view !== 'REGISTER' && (
+          <div className="text-center">
+            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">© 2026 MOC Indigenous Affairs Management</p>
+          </div>
+        )}
       </div>
     </div>
   );
