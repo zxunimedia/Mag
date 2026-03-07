@@ -90,10 +90,20 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
 
   // 添加新用戶（透過 Supabase Auth 建立帳號）
   const handleAddUser = async () => {
+    // 基本欄位驗證
     if (!newUser.name || !newUser.email || !newUser.password) {
       alert('請填寫用戶名稱、信箱和密碼');
       return;
     }
+    
+    // 根據角色驗證單位資訊
+    if (newUser.role === UserRole.OPERATOR) {
+      if (!newUser.unitId || !newUser.unitName) {
+        alert('操作人員必須填寫單位代碼和單位名稱');
+        return;
+      }
+    }
+    
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email!,
@@ -314,7 +324,16 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
                 <label className="text-sm font-bold text-gray-600 mb-2 block">角色</label>
                 <select
                   value={newUser.role || UserRole.OPERATOR}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })}
+                  onChange={(e) => {
+                    const role = e.target.value as UserRole;
+                    setNewUser({ 
+                      ...newUser, 
+                      role,
+                      // 如果選擇輔導老師，自動設定為文化部
+                      unitId: role === UserRole.COACH ? 'MOC' : newUser.unitId,
+                      unitName: role === UserRole.COACH ? '文化部' : newUser.unitName
+                    });
+                  }}
                   className="form-input w-full"
                 >
                   <option value={UserRole.OPERATOR}>操作人員</option>
@@ -322,26 +341,47 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
                   <option value={UserRole.ADMIN}>管理員</option>
                 </select>
               </div>
-              <div>
-                <label className="text-sm font-bold text-gray-600 mb-2 block">單位代碼</label>
-                <input
-                  type="text"
-                  value={newUser.unitId || ''}
-                  onChange={(e) => setNewUser({ ...newUser, unitId: e.target.value })}
-                  className="form-input w-full"
-                  placeholder="輸入單位代碼"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-gray-600 mb-2 block">單位名稱</label>
-                <input
-                  type="text"
-                  value={newUser.unitName || ''}
-                  onChange={(e) => setNewUser({ ...newUser, unitName: e.target.value })}
-                  className="form-input w-full"
-                  placeholder="輸入單位名稱"
-                />
-              </div>
+              
+              {/* 只有非輔導老師角色才顯示單位欄位 */}
+              {newUser.role !== UserRole.COACH && (
+                <>
+                  <div>
+                    <label className="text-sm font-bold text-gray-600 mb-2 block">
+                      單位代碼 {newUser.role === UserRole.OPERATOR ? '*' : ''}
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.unitId || ''}
+                      onChange={(e) => setNewUser({ ...newUser, unitId: e.target.value })}
+                      className="form-input w-full"
+                      placeholder={newUser.role === UserRole.ADMIN ? '輸入單位代碼（選填）' : '輸入單位代碼'}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-gray-600 mb-2 block">
+                      單位名稱 {newUser.role === UserRole.OPERATOR ? '*' : ''}
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.unitName || ''}
+                      onChange={(e) => setNewUser({ ...newUser, unitName: e.target.value })}
+                      className="form-input w-full"
+                      placeholder={newUser.role === UserRole.ADMIN ? '輸入單位名稱（選填）' : '輸入單位名稱'}
+                    />
+                  </div>
+                </>
+              )}
+              
+              {/* 輔導老師角色的說明 */}
+              {newUser.role === UserRole.COACH && (
+                <div className="col-span-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800 font-medium">📋 輔導老師資訊</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    輔導老師為文化部委派的專業輔導人員，無需填寫執行單位資訊。
+                    系統將自動歸屬於「文化部」單位。
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* 計畫分配 */}
