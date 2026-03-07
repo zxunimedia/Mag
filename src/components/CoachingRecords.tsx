@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Project, CoachingRecord, UserRole, KRStatus, VisitRow, AssessmentResult } from '../types';
 import { Plus, X, Calendar, Camera, Trash2, MessageSquare, Save, Pencil, Upload, FileCheck, Info, ChevronRight, AlertTriangle, Download } from 'lucide-react';
 import { exportCoachingRecords } from '../utils/exportUtils';
+import CoachVisitRecordForm from './CoachVisitRecordForm';
 
 interface CoachingRecordsProps {
   projects: Project[];
@@ -18,6 +19,7 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   const visibleProjects = projects;
   const [selectedProjectId, setSelectedProjectId] = useState(visibleProjects[0]?.id || '');
   const [showModal, setShowModal] = useState(false);
+  const [showCoachForm, setShowCoachForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Partial<CoachingRecord> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -45,6 +47,15 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
 
   const handleOpenNew = () => {
     if (!isAdmin && !isCoach) return;
+    
+    // 輔導老師使用專用表單
+    if (isCoach) {
+      setEditingRecord({});
+      setShowCoachForm(true);
+      return;
+    }
+    
+    // 管理員使用原有的系統表單
     const projectCode = selectedProject?.projectCode || selectedProjectId;
     const serial = `${projectCode}-${(filteredRecords.length + 1).toString().padStart(3, '0')}`;
     
@@ -60,8 +71,8 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
     }
     const visitContents = keyResults.length > 0 ? keyResults : [initVisitRow('1'), initVisitRow('2')];
     
-    // 根據角色決定紀錄類型
-    const recordType: 'coach' | 'team' = isCoach ? 'coach' : 'team';
+    // 管理員建立團隊紀錄
+    const recordType: 'coach' | 'team' = 'team';
 
     // 自動帶入資料
     const location = selectedProject?.siteTypes && selectedProject?.sites 
@@ -114,8 +125,15 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
   };
 
   const handleOpenEdit = (record: CoachingRecord) => {
-    setEditingRecord({...record});
-    setShowModal(true);
+    // 輔導老師紀錄使用專用表單
+    if (isCoachRecord(record)) {
+      setEditingRecord({...record});
+      setShowCoachForm(true);
+    } else {
+      // 團隊紀錄使用原有表單
+      setEditingRecord({...record});
+      setShowModal(true);
+    }
   };
 
   const canEditRecord = (record: CoachingRecord | Partial<CoachingRecord>) => {
@@ -137,6 +155,17 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
       onSaveRecord(editingRecord as CoachingRecord);
       setShowModal(false);
     }
+  };
+
+  const handleCoachFormSave = (record: CoachingRecord) => {
+    onSaveRecord(record);
+    setShowCoachForm(false);
+    setEditingRecord(null);
+  };
+
+  const handleCoachFormCancel = () => {
+    setShowCoachForm(false);
+    setEditingRecord(null);
   };
 
   // ============ 輔導老師版 Modal ============
@@ -735,6 +764,17 @@ const CoachingRecords: React.FC<CoachingRecordsProps> = ({ projects, coachingRec
         </div>
         );
       })()}
+
+      {/* 輔導老師專用表單 */}
+      {showCoachForm && selectedProject && (
+        <CoachVisitRecordForm
+          project={selectedProject}
+          record={editingRecord}
+          onSave={handleCoachFormSave}
+          onCancel={handleCoachFormCancel}
+          isEditing={!!editingRecord?.id}
+        />
+      )}
 
       <style>{`
         .record-header {

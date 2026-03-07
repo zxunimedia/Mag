@@ -135,7 +135,28 @@ export interface CoachingRecord {
     others: string;
     othersChecked?: boolean;
   };
-  // 輔導老師版專用欄位
+  // 輔導老師版專用欄位（按Word文檔格式）
+  visitDate?: string;           // 訪視時間（日期）
+  visitLocation?: string;       // 訪視地點
+  visitedUnit?: string;         // 受訪單位
+  projectName?: string;         // 計畫名稱
+  coachName?: string;           // 輔導老師姓名
+  unitStaff?: string;           // 受訪單位人員
+  otherStaff?: string;          // 其他單位人員
+  projectPeriod?: string;       // 計畫期程
+  okrSummary?: string;          // 計畫OKR簡表
+  reviewMechanism?: string;     // 定期檢討機制
+  executionDescription?: string; // 計畫執行狀況說明
+  teamSuggestions?: string;     // 提供團隊建議
+  mocSuggestions?: string;      // 提供本部建議
+  photos?: Array<{             // 現場照片
+    id: string;
+    name: string;
+    url: string;
+    file?: File;
+  }>;
+  
+  // 原有輔導老師版專用欄位
   coachAttendees?: {
     coach: string;           // 輔導老師
     unitStaff: string;       // 受訪單位人員
