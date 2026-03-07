@@ -373,8 +373,7 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
           </p>
         </div>
       </>
-    )
-  );
+    );
 };
 
 export default SelfRegistration;
