@@ -9,11 +9,12 @@ import ProjectForm from './components/ProjectForm';
 import ProjectExecutionControl from './components/ProjectExecutionControl';
 import CoachingRecords from './components/CoachingRecords';
 import CoachingFinalReport from './components/CoachingFinalReport';
+import FinalReports from './components/FinalReports';
 import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
 import PermissionManagement from './components/PermissionManagement';
-import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus, GrantDocStatus } from './types';
+import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus, GrantDocStatus, FinalReport } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus, FileDown, CheckSquare, Square } from 'lucide-react';
 
 const MOCK_PROJECTS: Project[] = [
@@ -167,6 +168,7 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [monthlyReports, setMonthlyReports] = useState<MonthlyReport[]>([]);
   const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>([]);
+  const [finalReports, setFinalReports] = useState<FinalReport[]>([]);
   const [reports] = useState<Report[]>([]);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -388,6 +390,20 @@ const App: React.FC = () => {
   // 刪除輔導紀錄
   const handleDeleteCoachingRecord = (recordId: string) => {
     setCoachingRecords(prev => prev.filter(r => r.id !== recordId));
+  };
+
+  // 儲存期末結案表
+  const handleSaveFinalReport = (report: FinalReport) => {
+    setFinalReports(prev => {
+      const exists = prev.find(r => r.id === report.id);
+      if (exists) return prev.map(r => r.id === report.id ? report : r);
+      return [...prev, report];
+    });
+  };
+
+  // 刪除期末結案表
+  const handleDeleteFinalReport = (reportId: string) => {
+    setFinalReports(prev => prev.filter(r => r.id !== reportId));
   };
 
   // 刪除月報
@@ -771,7 +787,7 @@ const App: React.FC = () => {
               )}
               {activeTab === 'grants' && <GrantProgress projects={visibleProjects} onUpdateProject={handleUpdateProject} currentUserRole={currentUser.role} />}
               {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} onDeleteRecord={handleDeleteCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
-              {activeTab === 'finalReport' && <CoachingFinalReport projects={visibleProjects} coachingRecords={coachingRecords} currentUserRole={currentUser.role} />}
+              {activeTab === 'finalReport' && <FinalReports projects={visibleProjects} finalReports={finalReports} onSaveReport={handleSaveFinalReport} onDeleteReport={handleDeleteFinalReport} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
               
               {/* 新案提案申請：儲存為新計畫 */}
               {activeTab === 'submission' && isAdmin && (

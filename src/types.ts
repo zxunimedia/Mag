@@ -274,6 +274,7 @@ export interface Project {
   budgetItems: BudgetItem[];
   grants: GrantStage[];
   coachingRecords: CoachingRecord[];
+  finalReports?: FinalReport[];    // 期末結案表
   status: ProjectStatus;
   progress: number;
   village: string;
@@ -306,4 +307,32 @@ export interface Report {
   allPhotos: string[];                // 所有訪視照片
   createdAt: string;
   updatedAt?: string;
+}
+
+// 期末結案表相關類型
+export interface FinalReport {
+  id: string;
+  projectId: string;
+  coachName: string;
+  submissionDate: string;
+  supervisedUnit: string;
+  projectName: string;
+  consultationItems: ConsultationItem[];
+  comprehensiveOpinion: string;
+  photos: Array<{
+    id: string;
+    name: string;
+    url: string;
+    file?: File;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConsultationItem {
+  id: string;
+  date: string;
+  method: '電話' | '電郵' | '其他';
+  content: string;
+  methodOther?: string;
 }
