@@ -190,34 +190,55 @@ const App: React.FC = () => {
   // ─── 從 Supabase 載入用戶列表 ───────────────────────────────────────────────
   const loadUsers = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      console.log('🔄 正在載入用戶列表...');
+      
+      // 1. 從 profiles 表取得用戶資料
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name, role, unit_id, unit_name, created_at')
         .order('created_at', { ascending: true });
-      if (error) {
-        console.error('Failed to load users:', error);
+      
+      if (profilesError) {
+        console.error('Failed to load profiles:', profilesError);
         return;
       }
-      if (data && data.length > 0) {
+      
+      if (profiles && profiles.length > 0) {
         const roleMap: Record<string, UserRole> = {
           'MOC_ADMIN': UserRole.ADMIN,
           'COACH': UserRole.COACH,
           'UNIT_OPERATOR': UserRole.OPERATOR,
         };
-        const mappedUsers: User[] = data.map((p: any) => ({
-          id: p.id,
-          name: p.name || '未命名',
-          email: '',
-          role: roleMap[p.role] || UserRole.OPERATOR,
-          unitId: p.unit_id || '',
-          unitName: p.unit_name || '',
-          assignedProjectIds: [],
-          createdAt: p.created_at,
-        }));
+        
+        // 2. 嘗試從 auth 獲取當前用戶的 email
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        const mappedUsers: User[] = profiles.map((profile: any) => {
+          // 如果是當前登入用戶，使用真實 email，否則使用佔位符
+          const userEmail = (currentUser && currentUser.id === profile.id) 
+            ? (currentUser.email || '') 
+            : `user-${profile.id.slice(0, 8)}@system.local`;
+          
+          return {
+            id: profile.id,
+            name: profile.name || '未命名',
+            email: userEmail,
+            role: roleMap[profile.role] || UserRole.OPERATOR,
+            unitId: profile.unit_id || '',
+            unitName: profile.unit_name || '',
+            assignedProjectIds: [],
+            createdAt: profile.created_at,
+          };
+        });
+        
+        console.log(`✅ 成功載入 ${mappedUsers.length} 個用戶`);
         setUsers(mappedUsers);
+      } else {
+        console.log('📝 未找到用戶資料');
+        setUsers([]);
       }
     } catch (err) {
-      console.error('loadUsers error:', err);
+      console.error('❌ loadUsers error:', err);
     }
   }, []);
 

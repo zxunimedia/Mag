@@ -82,10 +82,42 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
     setUsers(userList as UserWithProjects[]);
   }, [propsUsers]);
 
-  // 保存用戶狀態並通知父組件
-  const saveUsers = (updatedUsers: UserWithProjects[]) => {
+  // 保存用戶狀態並同步到 Supabase
+  const saveUsers = async (updatedUsers: UserWithProjects[]) => {
     setUsers(updatedUsers);
     onUsersChange(updatedUsers);
+    
+    // 同步到 Supabase profiles 表
+    try {
+      const roleMap: Record<string, string> = {
+        [UserRole.ADMIN]: 'MOC_ADMIN',
+        [UserRole.COACH]: 'COACH',
+        [UserRole.OPERATOR]: 'UNIT_OPERATOR',
+      };
+      
+      // 只同步有 Supabase ID 的用戶（已經通過 Auth 創建的）
+      const usersToSync = updatedUsers.filter(user => 
+        user.id && !user.id.startsWith('local-')
+      );
+      
+      for (const user of usersToSync) {
+        const { error } = await supabase.from('profiles').upsert({
+          id: user.id,
+          name: user.name,
+          role: roleMap[user.role] ?? 'UNIT_OPERATOR',
+          unit_id: user.unitId || null,
+          unit_name: user.unitName || null,
+          created_at: user.createdAt,
+          updated_at: new Date().toISOString()
+        });
+        
+        if (error) {
+          console.error(`Failed to sync user ${user.email}:`, error);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing users to Supabase:', err);
+    }
   };
 
   // 添加新用戶（透過 Supabase Auth 建立帳號）
@@ -121,13 +153,20 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
           [UserRole.COACH]: 'COACH',
           [UserRole.OPERATOR]: 'UNIT_OPERATOR',
         };
-        await supabase.from('profiles').upsert({
+        const { error: profileError } = await supabase.from('profiles').upsert({
           id: userId,
           name: newUser.name,
           role: roleMap[newUser.role ?? UserRole.OPERATOR] ?? 'UNIT_OPERATOR',
           unit_id: newUser.unitId || null,
           unit_name: newUser.unitName || null,
+          created_at: new Date().toISOString()
         });
+        
+        if (profileError) {
+          console.error('Profile upsert error:', profileError);
+          alert(`建立用戶資料失敗：${profileError.message}`);
+          return;
+        }
       }
       const user: UserWithProjects = {
         id: userId,
@@ -140,7 +179,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
         createdAt: new Date().toISOString()
       };
       const updated = [...users, user];
-      saveUsers(updated);
+      await saveUsers(updated);
       setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
       setIsAddingUser(false);
       
@@ -194,23 +233,39 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
   };
 
   // 保存編輯
-  const handleSaveEdit = (id: string, updated: Partial<User>) => {
+  const handleSaveEdit = async (id: string, updated: Partial<User>) => {
     const updatedUsers = users.map(u => 
       u.id === id ? { ...u, ...updated, isEditing: false } : u
     );
-    saveUsers(updatedUsers);
+    await saveUsers(updatedUsers);
   };
 
   // 刪除用戶
-  const handleDeleteUser = (id: string) => {
+  const handleDeleteUser = async (id: string) => {
     if (confirm('確定要刪除此用戶嗎？')) {
+      // 先從 Supabase 刪除
+      if (id && !id.startsWith('local-')) {
+        try {
+          const { error } = await supabase.from('profiles').delete().eq('id', id);
+          if (error) {
+            console.error('Failed to delete user from Supabase:', error);
+            alert('刪除用戶失敗，請稍後再試');
+            return;
+          }
+        } catch (err) {
+          console.error('Error deleting user:', err);
+          alert('刪除用戶時發生錯誤');
+          return;
+        }
+      }
+      
       const updated = users.filter(u => u.id !== id);
-      saveUsers(updated);
+      await saveUsers(updated);
     }
   };
 
   // 切換計畫分配
-  const handleToggleProjectAssignment = (userId: string, projectId: string) => {
+  const handleToggleProjectAssignment = async (userId: string, projectId: string) => {
     const updatedUsers = users.map(u => {
       if (u.id === userId) {
         const assigned = u.assignedProjectIds || [];
@@ -221,7 +276,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
       }
       return u;
     });
-    saveUsers(updatedUsers);
+    await saveUsers(updatedUsers);
   };
 
   // 新增用戶時切換計畫
