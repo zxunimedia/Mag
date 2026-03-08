@@ -22,6 +22,7 @@ interface ProjectSubmissionProps {
   onBack: () => void;
   onSave: (data: any) => void;
   currentUserRole: string;
+  editingProject?: { id: string; project_code?: string }; // 編輯模式時的專案資訊
 }
 
 interface ProjectFormData {
@@ -62,7 +63,7 @@ interface User {
   unit_name: string;
 }
 
-const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, currentUserRole }) => {
+const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, currentUserRole, editingProject }) => {
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isOperator = currentUserRole === UserRole.OPERATOR;
   const isCoach = currentUserRole === UserRole.COACH;
@@ -145,6 +146,37 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
     loadUsers();
   }, []);
 
+  // project_code 即時檢查
+  const [projectCodeChecking, setProjectCodeChecking] = useState(false);
+  const [projectCodeDebounce, setProjectCodeDebounce] = useState<NodeJS.Timeout | null>(null);
+  
+  const handleProjectCodeChange = (value: string) => {
+    handleInputChange('project_code', value);
+    
+    // 清除之前的錯誤訊息
+    if (errors.project_code) {
+      setErrors(prev => ({ ...prev, project_code: '' }));
+    }
+    
+    // 設定防抖動，500ms 後檢查
+    if (projectCodeDebounce) {
+      clearTimeout(projectCodeDebounce);
+    }
+    
+    if (value.trim()) {
+      const timeout = setTimeout(async () => {
+        setProjectCodeChecking(true);
+        const isUnique = await checkProjectCodeUniqueness(value);
+        if (!isUnique) {
+          setErrors(prev => ({ ...prev, project_code: '計畫編號已存在，請使用其他編號' }));
+        }
+        setProjectCodeChecking(false);
+      }, 500);
+      
+      setProjectCodeDebounce(timeout);
+    }
+  };
+
   const handleInputChange = (field: keyof ProjectFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -198,11 +230,46 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
     }
   };
 
-  const validateAdminFields = () => {
+  // project_code 唯一性檢查
+  const checkProjectCodeUniqueness = async (projectCode: string): Promise<boolean> => {
+    if (!projectCode.trim()) return true; // 空值不檢查
+    
+    try {
+      let query = supabase
+        .from('projects')
+        .select('id')
+        .eq('project_code', projectCode.trim());
+      
+      // 編輯模式時排除自身
+      if (editingProject?.id) {
+        query = query.neq('id', editingProject.id);
+      }
+      
+      const { data, error } = await query.limit(1);
+      
+      if (error) {
+        console.error('檢查計畫編號唯一性時發生錯誤:', error);
+        return true; // 發生錯誤時允許通過，避免阻擋正常流程
+      }
+      
+      return !data || data.length === 0; // 沒有找到重複 = 唯一
+    } catch (error) {
+      console.error('計畫編號唯一性檢查失敗:', error);
+      return true; // 錯誤時允許通過
+    }
+  };
+
+  const validateAdminFields = async () => {
     const newErrors: Record<string, string> = {};
     
     if (!formData.project_code.trim()) {
       newErrors.project_code = '計畫編號為必填欄位';
+    } else {
+      // 檢查 project_code 唯一性
+      const isUnique = await checkProjectCodeUniqueness(formData.project_code);
+      if (!isUnique) {
+        newErrors.project_code = '計畫編號已存在，請使用其他編號';
+      }
     }
     
     if (!formData.name.trim()) {
@@ -248,8 +315,8 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
     setLoading(true);
     
     try {
-      // 管理員驗證
-      if (isAdmin && !validateAdminFields()) {
+      // 管理員驗證（異步）
+      if (isAdmin && !(await validateAdminFields())) {
         setLoading(false);
         return;
       }
@@ -296,7 +363,22 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
         spent: 0
       };
       
-      onSave(projectData);
+      // 執行保存並捕獲 Supabase 錯誤
+      try {
+        onSave(projectData);
+      } catch (saveError: any) {
+        // 捕獲 Supabase 唯一性約束錯誤
+        if (saveError?.message?.includes('duplicate key') || 
+            saveError?.message?.includes('already exists') || 
+            saveError?.code === '23505') {
+          setErrors({ project_code: '計畫編號已存在，請使用其他編號' });
+        } else {
+          setErrors({ general: '儲存失敗，請稍後重試' });
+        }
+        setLoading(false);
+        return;
+      }
+      
     } catch (error) {
       console.error('儲存失敗:', error);
       setErrors({ general: '儲存失敗，請稍後重試' });
@@ -338,16 +420,23 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
             <Hash className="w-4 h-4 inline mr-1" />
             計畫編號 *
           </label>
-          <input
-            type="text"
-            value={formData.project_code}
-            onChange={(e) => handleInputChange('project_code', e.target.value)}
-            disabled={!isAdmin}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${errors.project_code ? 'border-red-300' : 'border-gray-300'}`}
-            placeholder="例如：MOC-2026-001"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={formData.project_code}
+              onChange={(e) => handleProjectCodeChange(e.target.value)}
+              disabled={!isAdmin}
+              className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+              } ${errors.project_code ? 'border-red-300' : 'border-gray-300'}`}
+              placeholder="例如：MOC-2026-001"
+            />
+            {projectCodeChecking && (
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              </div>
+            )}
+          </div>
           {errors.project_code && (
             <p className="text-red-500 text-xs mt-1">{errors.project_code}</p>
           )}
