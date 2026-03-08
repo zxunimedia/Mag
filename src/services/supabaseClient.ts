@@ -5,19 +5,43 @@ const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || '';
 
 /** 若 false，代表環境變數未正確設定，所有 Supabase 呼叫將回傳錯誤 */
-export const supabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+export const supabaseConfigured = !!(supabaseUrl && supabaseAnonKey && 
+  !supabaseUrl.includes('placeholder') && 
+  !supabaseAnonKey.includes('placeholder'));
 
 if (!supabaseConfigured) {
-  console.warn('[Supabase] ⚠️ VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY 未設定。請在 Vercel Dashboard > Settings > Environment Variables 確認已新增這兩個變數，並重新部署。');
+  console.warn('[Supabase] ⚠️ VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY 未正確設定。請在 Vercel Dashboard > Settings > Environment Variables 確認已新增這兩個變數，並重新部署。');
+  console.warn('[Supabase] 當前值:', { supabaseUrl: supabaseUrl ? '已設定' : '未設定', supabaseAnonKey: supabaseAnonKey ? '已設定' : '未設定' });
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+// 設定正確的重導向 URL
+const getRedirectURL = () => {
+  if (typeof window !== 'undefined') {
+    // 在瀏覽器中，使用當前的 origin
+    return `${window.location.origin}/auth/callback`;
+  }
+  
+  // 在 production 環境使用正式域名
+  if (import.meta.env.PROD) {
+    return 'https://mocwork.atipd.tw/auth/callback';
+  }
+  
+  // 開發環境
+  return 'http://localhost:3000/auth/callback';
+};
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder', 
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce', // 使用更安全的 PKCE 流程
+    },
+  }
+);
 
 // ─── 型別定義（對應資料庫欄位）───────────────────────────────
 
@@ -159,4 +183,241 @@ export async function uploadGrantDocument(
     .getPublicUrl(filePath);
 
   return data.publicUrl;
+}
+
+// ─── Auth 相關工具函數 ────────────────────────────────────────
+
+/** 檢查用戶是否為管理員（基於 JWT claims） */
+export function isUserAdmin(user: any): boolean {
+  if (!user) return false;
+  
+  // 檢查 JWT metadata 中的 role
+  const userRole = user.user_metadata?.role || user.raw_user_meta_data?.role;
+  return userRole === 'MOC_ADMIN';
+}
+
+/** 用戶註冊 */
+export async function signUpUser(email: string, password: string, userData?: Record<string, any>) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: userData || {},
+        emailRedirectTo: getRedirectURL()
+      }
+    });
+
+    return { data, error };
+  } catch (err) {
+    console.error('SignUp error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '註冊時發生未知錯誤' } 
+    };
+  }
+}
+
+/** 用戶登入 */
+export async function signInUser(email: string, password: string) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password
+    });
+
+    return { data, error };
+  } catch (err) {
+    console.error('SignIn error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '登入時發生未知錯誤' } 
+    };
+  }
+}
+
+/** 發送密碼重設信 */
+export async function resetPassword(email: string) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: getRedirectURL()
+    });
+
+    return { data, error };
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '重設密碼時發生未知錯誤' } 
+    };
+  }
+}
+
+/** 登出 */
+export async function signOutUser() {
+  if (!supabaseConfigured) {
+    return { error: null };
+  }
+
+  try {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  } catch (err) {
+    console.error('SignOut error:', err);
+    return { error: err instanceof Error ? err : new Error('登出時發生未知錯誤') };
+  }
+}
+
+/** 重新發送驗證信 */
+export async function resendConfirmation(email: string) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: getRedirectURL()
+      }
+    });
+
+    return { data, error };
+  } catch (err) {
+    console.error('Resend confirmation error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '重新發送驗證信時發生未知錯誤' } 
+    };
+  }
+}
+
+/** 設定新密碼（用於密碼重設流程） */
+export async function updatePassword(newPassword: string) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    return { data, error };
+  } catch (err) {
+    console.error('Update password error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '更新密碼時發生未知錯誤' } 
+    };
+  }
+}
+
+/** 監聽 Auth 狀態變化 */
+export function onAuthStateChange(callback: (event: string, session: any) => void) {
+  if (!supabaseConfigured) {
+    console.warn('[Supabase] Cannot setup auth listener: not configured');
+    return { data: { subscription: { unsubscribe: () => {} } } };
+  }
+
+  return supabase.auth.onAuthStateChange(callback);
+}
+
+/** 取得當前 session */
+export async function getSession() {
+  if (!supabaseConfigured) {
+    return { data: { session: null }, error: null };
+  }
+
+  return await supabase.auth.getSession();
+}
+
+/** 管理員建立使用者帳號（透過 Supabase Admin API） */
+export async function adminCreateUser(email: string, password: string, userData: {
+  name: string;
+  role: 'MOC_ADMIN' | 'COACH' | 'UNIT_OPERATOR';
+  unit_id?: string | null;
+  unit_name?: string | null;
+}) {
+  if (!supabaseConfigured) {
+    return { 
+      data: null, 
+      error: { message: 'Supabase 未正確配置，請檢查環境變數' } 
+    };
+  }
+
+  try {
+    // 先建立 Auth 使用者
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: { 
+          name: userData.name,
+          role: userData.role
+        },
+        emailRedirectTo: getRedirectURL()
+      }
+    });
+
+    if (authError || !authData.user) {
+      return { data: null, error: authError || { message: '建立使用者失敗' } };
+    }
+
+    // 建立對應的 profile 記錄
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        name: userData.name,
+        role: userData.role,
+        unit_id: userData.unit_id,
+        unit_name: userData.unit_name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError);
+      // 不要拋出錯誤，因為 Auth 使用者已經建立成功
+      // Trigger function 會自動建立基本的 profile
+    }
+
+    return { data: authData, error: null };
+
+  } catch (err) {
+    console.error('Admin create user error:', err);
+    return { 
+      data: null, 
+      error: { message: err instanceof Error ? err.message : '建立使用者時發生未知錯誤' } 
+    };
+  }
 }

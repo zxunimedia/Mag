@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Project } from '../types';
-import { supabase } from '../services/supabaseClient';
+import { supabase, adminCreateUser, resendConfirmation } from '../services/supabaseClient';
 import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 interface PermissionManagementProps {
@@ -137,37 +137,44 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
     }
     
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email!,
-        password: newUser.password!,
-        options: { data: { name: newUser.name } }
-      });
+      // 使用新的 adminCreateUser 函數
+      const { data: authData, error: authError } = await adminCreateUser(
+        newUser.email!,
+        newUser.password!,
+        {
+          name: newUser.name!,
+          role: getRoleMapping(newUser.role || UserRole.OPERATOR),
+          unit_id: newUser.unitId || null,
+          unit_name: newUser.unitName || null
+        }
+      );
+
       if (authError) {
-        alert(`建立帳號失敗：${authError.message}`);
+        let errorMessage = '建立帳號失敗';
+        
+        if (authError.message?.includes('User already registered')) {
+          errorMessage = '此 Email 已經註冊過，請使用其他 Email 地址';
+        } else if (authError.message?.includes('Password should be at least')) {
+          errorMessage = '密碼長度至少需要 6 個字符';
+        } else if (authError.message?.includes('new row violates row-level security')) {
+          errorMessage = '權限不足，請確認您有管理員權限';
+        } else if (authError.message?.includes('duplicate key')) {
+          errorMessage = '此 Email 已存在於系統中';
+        } else {
+          errorMessage = `建立帳號失敗：${authError.message}`;
+        }
+        
+        alert(`❌ ${errorMessage}\n\n請檢查：\n1. Email 格式是否正確且未被使用\n2. 密碼是否符合安全要求\n3. 您是否有管理員權限`);
         return;
       }
-      const userId = authData.user?.id ?? `local-${Date.now()}`;
-      if (authData.user?.id) {
-        const roleMap: Record<string, string> = {
-          [UserRole.ADMIN]: 'MOC_ADMIN',
-          [UserRole.COACH]: 'COACH',
-          [UserRole.OPERATOR]: 'UNIT_OPERATOR',
-        };
-        const { error: profileError } = await supabase.from('profiles').upsert({
-          id: userId,
-          name: newUser.name,
-          role: roleMap[newUser.role ?? UserRole.OPERATOR] ?? 'UNIT_OPERATOR',
-          unit_id: newUser.unitId || null,
-          unit_name: newUser.unitName || null,
-          created_at: new Date().toISOString()
-        });
-        
-        if (profileError) {
-          console.error('Profile upsert error:', profileError);
-          alert(`建立用戶資料失敗：${profileError.message}`);
-          return;
-        }
+
+      if (!authData?.user) {
+        alert('建立帳號失敗：無法取得使用者資訊');
+        return;
       }
+
+      // 建立本地使用者物件
+      const userId = authData.user.id;
       const user: UserWithProjects = {
         id: userId,
         name: newUser.name!,
@@ -178,48 +185,73 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
         assignedProjectIds: newUser.assignedProjectIds || [],
         createdAt: new Date().toISOString()
       };
+
+      // 更新本地狀態
       const updated = [...users, user];
       await saveUsers(updated);
-      setNewUser({ name: '', email: '', password: '', role: UserRole.OPERATOR, unitId: '', unitName: '', assignedProjectIds: [] });
+      
+      // 清空表單
+      setNewUser({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: UserRole.OPERATOR, 
+        unitId: '', 
+        unitName: '', 
+        assignedProjectIds: [] 
+      });
       setIsAddingUser(false);
       
-      // 如果需要 email 確認，記錄 email 並顯示更詳細的訊息
+      // 顯示成功訊息
       if (authData.user && !authData.user.email_confirmed_at) {
         setPendingConfirmationEmails(prev => [...prev, authData.user!.email!]);
-        alert(`✅ 帳號已建立！\n📧 確認信已發送至：${authData.user.email}\n\n⚠️  請提醒用戶：\n1. 檢查收件匣和垃圾信件匣\n2. 點擊確認信中的連結啟用帳號\n3. 如未收到，可使用下方「重新發送」功能`);
+        alert(`✅ 帳號已成功建立！\n\n📧 確認信已發送至：${authData.user.email}\n\n⚠️ 請提醒使用者：\n1. 檢查收件匣和垃圾信件匣\n2. 點擊確認信中的連結啟用帳號\n3. 完成驗證後即可正常登入系統\n\n💡 如未收到確認信，可使用下方「重新發送」功能`);
       } else {
-        alert(`✅ 帳號已建立並啟用！`);
+        alert(`✅ 帳號已建立並啟用！\n\n使用者現在可以直接登入系統。`);
       }
+
     } catch (err) {
       console.error('handleAddUser error:', err);
       const errorMessage = err instanceof Error ? err.message : '未知錯誤';
       
-      if (errorMessage.includes('rate limit')) {
-        alert('⚠️  發送確認信過於頻繁，請稍後再試（約5-10分鐘）。\n\n這是 Supabase 的保護機制，功能正常。');
+      if (errorMessage.includes('rate limit') || errorMessage.includes('too_many_requests')) {
+        alert('⚠️ 發送確認信過於頻繁，請稍後再試（約5-10分鐘）。\n\n這是 Supabase 的保護機制，帳號建立功能正常。');
       } else if (errorMessage.includes('User already registered')) {
         alert('❌ 此 Email 已經註冊過，請使用其他 Email 地址。');
+      } else if (errorMessage.includes('Supabase 未正確配置')) {
+        alert('❌ 系統配置錯誤，請聯繫系統管理員確認 Supabase 設定。');
       } else {
-        alert(`❌ 建立帳號失敗：${errorMessage}\n\n請檢查：\n1. Email 格式是否正確\n2. 密碼是否符合安全要求\n3. 網路連線是否正常`);
+        alert(`❌ 建立帳號失敗：${errorMessage}\n\n請檢查：\n1. 網路連線是否正常\n2. 您是否有管理員權限\n3. Supabase 服務是否正常運作`);
       }
+    }
+  };
+
+  // 角色映射函數
+  const getRoleMapping = (role: UserRole): 'MOC_ADMIN' | 'COACH' | 'UNIT_OPERATOR' => {
+    switch (role) {
+      case UserRole.ADMIN:
+        return 'MOC_ADMIN';
+      case UserRole.COACH:
+        return 'COACH';
+      case UserRole.OPERATOR:
+      default:
+        return 'UNIT_OPERATOR';
     }
   };
 
   // 重新發送確認信
   const handleResendConfirmation = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email
-      });
+      const { data, error } = await resendConfirmation(email);
       
       if (error) {
-        if (error.message.includes('rate limit')) {
-          alert('⚠️  重新發送確認信過於頻繁，請稍後再試（約5-10分鐘）。');
+        if (error.message?.includes('rate limit') || error.message?.includes('too_many_requests')) {
+          alert('⚠️ 重新發送確認信過於頻繁，請稍後再試（約5-10分鐘）。\n\n這是 Supabase 的保護機制，請耐心等候。');
         } else {
           alert(`❌ 重新發送失敗：${error.message}`);
         }
       } else {
-        alert(`✅ 確認信已重新發送至：${email}\n\n請檢查收件匣和垃圾信件匣。`);
+        alert(`✅ 確認信已重新發送至：${email}\n\n請提醒使用者檢查收件匣和垃圾信件匣。`);
       }
     } catch (err) {
       console.error('Resend confirmation error:', err);

@@ -11,9 +11,23 @@ import CoachingFinalReport from './components/CoachingFinalReport';
 import GrantProgress from './components/GrantProgress';
 import DataMigration from './components/DataMigration';
 import Login from './components/Login';
+import AuthCallback from './components/AuthCallback';
 import AccountManagement from './components/AccountManagement';
 import { Project, ProjectStatus, KRStatus, Report, MonthlyReport, CoachingRecord, User, UserRole, BudgetCategory, MOCCheckStatus } from './types';
 import { UserCircle, TrendingUp, Target, FileText, Mountain, Pencil, Trash2, LogOut, Plus } from 'lucide-react';
+import { onAuthStateChange, getCurrentProfile, signOutUser, supabaseConfigured } from './services/supabaseClient';
+
+// 簡單的路由處理
+const getCurrentRoute = (): string => {
+  if (typeof window === 'undefined') return '/';
+  return window.location.pathname;
+};
+
+const setRoute = (path: string) => {
+  if (typeof window !== 'undefined') {
+    window.history.pushState({}, '', path);
+  }
+};
 
 const MOCK_PROJECTS: Project[] = [
   {
@@ -111,10 +125,117 @@ const saveToStorage = <T,>(key: string, data: T): void => {
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentRoute, setCurrentRoute] = useState(getCurrentRoute());
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
   const [editMode, setEditMode] = useState<'NONE' | 'BASIC' | 'CONTROL'>('NONE');
+  
+  const [projects, setProjects] = useState<Project[]>(() => 
+    loadFromStorage(STORAGE_KEYS.PROJECTS, MOCK_PROJECTS)
+  );
+  const [reports, setReports] = useState<MonthlyReport[]>(() => 
+    loadFromStorage(STORAGE_KEYS.MONTHLY_REPORTS, [])
+  );
+  const [coachingRecords, setCoachingRecords] = useState<CoachingRecord[]>(() => 
+    loadFromStorage(STORAGE_KEYS.COACHING_RECORDS, [])
+  );
+
+  // 監聽瀏覽器路由變化
+  useEffect(() => {
+    const handlePopstate = () => {
+      setCurrentRoute(getCurrentRoute());
+    };
+    
+    window.addEventListener('popstate', handlePopstate);
+    return () => window.removeEventListener('popstate', handlePopstate);
+  }, []);
+
+  // 監聽 Supabase Auth 狀態變化
+  useEffect(() => {
+    if (!supabaseConfigured) {
+      console.warn('[App] Supabase not configured, using login form only');
+      setAuthLoading(false);
+      return;
+    }
+
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      console.log('[App] Auth event:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        // 使用者登入，取得 profile 資訊
+        try {
+          const profile = await getCurrentProfile();
+          
+          if (profile) {
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email ?? '',
+              name: profile.name ?? undefined,
+              role: profile.role as UserRole,
+              unitId: profile.unit_id ?? undefined,
+              unitName: profile.unit_name ?? undefined,
+              assignedProjectIds: [],
+              lastLogin: new Date().toISOString(),
+            };
+            
+            setCurrentUser(user);
+            
+            // 如果在 auth callback 路由，跳轉到主頁
+            if (currentRoute === '/auth/callback') {
+              setRoute('/');
+              setCurrentRoute('/');
+            }
+          } else {
+            console.error('[App] No profile found for user');
+            setCurrentUser(null);
+          }
+        } catch (error) {
+          console.error('[App] Error getting user profile:', error);
+          setCurrentUser(null);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        // 使用者登出
+        setCurrentUser(null);
+        setRoute('/');
+        setCurrentRoute('/');
+      }
+      
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentRoute]);
+
+  // 處理登出
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+      setCurrentUser(null);
+      setRoute('/');
+      setCurrentRoute('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // 即使發生錯誤也清除本地狀態
+      setCurrentUser(null);
+      setRoute('/');
+      setCurrentRoute('/');
+    }
+  };
+
+  // Auth callback 成功處理
+  const handleAuthCallbackSuccess = () => {
+    setRoute('/');
+    setCurrentRoute('/');
+  };
+
+  // Auth callback 錯誤處理
+  const handleAuthCallbackError = (message: string) => {
+    console.error('[App] Auth callback error:', message);
+    setRoute('/');
+    setCurrentRoute('/');
+  };
   
   // 從 localStorage 讀取資料，如果沒有則使用預設資料
   const [projects, setProjects] = useState<Project[]>(() => 
@@ -141,6 +262,29 @@ const App: React.FC = () => {
     saveToStorage(STORAGE_KEYS.COACHING_RECORDS, coachingRecords);
   }, [coachingRecords]);
 
+  // 如果是 auth callback 路由，顯示 AuthCallback 組件
+  if (currentRoute === '/auth/callback') {
+    return (
+      <AuthCallback 
+        onSuccess={handleAuthCallbackSuccess}
+        onError={handleAuthCallbackError}
+      />
+    );
+  }
+
+  // 如果正在載入 Auth 狀態，顯示載入畫面
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">載入中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果未登入，顯示登入頁面
   if (!currentUser) {
     return <Login onLogin={setCurrentUser} />;
   }
@@ -257,7 +401,7 @@ const App: React.FC = () => {
                </button>
             )}
           </div>
-          <button onClick={() => setCurrentUser(null)} className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-sm transition-all group shadow-sm">
+          <button onClick={handleLogout} className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl font-black text-sm transition-all group shadow-sm">
             <LogOut size={18} className="group-hover:rotate-12 transition-transform" /> 登出系統
           </button>
         </header>
