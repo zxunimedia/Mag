@@ -160,28 +160,17 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-8 h-8 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">註冊申請已提交</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">驗證信已寄出</h2>
         <div className="space-y-4 text-left">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-bold text-blue-800 mb-2">📧 確認信已發送</h3>
             <p className="text-sm text-blue-700">
-              請檢查您的信箱 <strong>{formData.email}</strong> 並點擊確認連結啟用帳號。
-            </p>
-          </div>
-          
-          <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-            <h3 className="font-bold text-amber-800 mb-2">⏳ 等待管理員審核</h3>
-            <p className="text-sm text-amber-700">
-              您的註冊申請已提交，管理員將會審核您的申請。審核通過後即可使用系統功能。
+              請至信箱點擊驗證連結完成啟用。完成後即可返回登入。
             </p>
           </div>
           
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-2">📞 聯繫資訊</h3>
             <p className="text-sm text-gray-700">
-              如有問題，請聯繫系統管理員：
-              <br />
-              <strong>mag@atipd.tw</strong>
+              需要協助請聯絡管理員：<strong>mag@atipd.tw</strong>
             </p>
           </div>
         </div>
@@ -367,11 +356,7 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
           </div>
         </form>
 
-        <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-600 text-center">
-            ⚠️ 申請提交後需要管理員審核，審核通過後方可使用系統功能
-          </p>
-        </div>
+
       </>
     );
 };

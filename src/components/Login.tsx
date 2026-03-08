@@ -557,10 +557,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <div className="space-y-3">
               <div className="text-sm text-gray-600 space-y-2">
-                <p><strong>📧 請檢查您的信箱</strong></p>
-                <p>• 查看收件匣和垃圾郵件資料夾</p>
-                <p>• 點擊郵件中的連結完成驗證</p>
-                <p>• 驗證後即可正常登入系統</p>
+                <p><strong>📧 驗證信已寄出</strong></p>
+                <p>請至信箱點擊驗證連結完成啟用。完成後即可返回登入。</p>
+                <p className="pt-2 border-t border-gray-200">需要協助請聯絡管理員：mag@atipd.tw</p>
               </div>
             </div>
 
