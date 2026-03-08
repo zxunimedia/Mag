@@ -307,13 +307,28 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
 
   const renderAdminSection = () => (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Settings className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-bold text-blue-800">
-          管理員開案區域 
-          {!isAdmin && <span className="text-sm font-normal text-blue-600">（唯讀）</span>}
-        </h3>
-        {!isAdmin && <Lock className="w-4 h-4 text-blue-500" />}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Settings className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-bold text-blue-800">
+            🔷 管理員開案區域
+            {!isAdmin && <span className="text-sm font-normal text-blue-600 ml-2">（僅管理員可編輯）</span>}
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isAdmin && (
+            <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+              <Lock className="w-3 h-3" />
+              <span>等待管理員開案完成</span>
+            </div>
+          )}
+          {isAdmin && (
+            <div className="flex items-center gap-1 text-xs text-blue-700 bg-blue-200 px-2 py-1 rounded">
+              <Unlock className="w-3 h-3" />
+              <span>可編輯</span>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -335,6 +350,9 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
           />
           {errors.project_code && (
             <p className="text-red-500 text-xs mt-1">{errors.project_code}</p>
+          )}
+          {!isAdmin && (
+            <p className="text-blue-600 text-xs mt-1">💡 此欄位由管理員填寫，必填且需唯一</p>
           )}
         </div>
 
@@ -493,74 +511,103 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
         </div>
       </div>
 
-      {/* 快速填入期程 */}
+      {/* 🗓️ 管理員專用：批次填入期程工具 */}
       {isAdmin && (
-        <div className="mt-6 bg-white border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="checkbox"
-              id="quickDate"
-              checked={quickDateSetup.enabled}
-              onChange={(e) => setQuickDateSetup(prev => ({ ...prev, enabled: e.target.checked }))}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="quickDate" className="text-sm font-bold text-gray-700">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              快速填入期程
-            </label>
-            <span className="text-xs text-gray-500">（此功能為快速填入，不是進度判斷）</span>
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="quickDate"
+                checked={quickDateSetup.enabled}
+                onChange={(e) => setQuickDateSetup(prev => ({ ...prev, enabled: e.target.checked }))}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="quickDate" className="text-sm font-bold text-gray-700">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                🚀 批次填入期程工具
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">管理員專用</span>
+            </div>
           </div>
+          <p className="text-xs text-gray-600 mb-3">💡 快速設定計畫期程，支援兩種方式：依月數計算或直接指定結束日</p>
 
           {quickDateSetup.enabled && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">開始日期</label>
-                  <input
-                    type="date"
-                    value={quickDateSetup.start_date}
-                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, start_date: e.target.value }))}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">執行月數</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="60"
-                    value={quickDateSetup.duration_months}
-                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, duration_months: parseInt(e.target.value) }))}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                  />
+            <div className="space-y-4 bg-white rounded-lg p-4 border border-blue-100">
+              {/* 方式 1：開始日 + 月數 */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  📅 方式 1：依月數自動計算
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">開始日期</label>
+                    <input
+                      type="date"
+                      value={quickDateSetup.start_date}
+                      onChange={(e) => setQuickDateSetup(prev => ({ ...prev, start_date: e.target.value }))}
+                      className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">執行月數</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={quickDateSetup.duration_months}
+                      onChange={(e) => setQuickDateSetup(prev => ({ ...prev, duration_months: parseInt(e.target.value) || 12 }))}
+                      className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleQuickDateCalculate}
+                      disabled={!quickDateSetup.start_date}
+                      className="w-full bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      🎯 計算並套用
+                    </button>
+                  </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleQuickDateCalculate}
-                  className="w-full bg-blue-100 text-blue-800 py-2 px-3 rounded text-sm hover:bg-blue-200 transition-colors"
-                >
-                  依月數計算結束日
-                </button>
-                
-                <div className="space-y-2">
-                  <input
-                    type="date"
-                    value={quickDateSetup.end_date}
-                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, end_date: e.target.value }))}
-                    placeholder="或直接指定結束日"
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleQuickDateByEndDate}
-                    className="w-full bg-green-100 text-green-800 py-1 px-2 rounded text-xs hover:bg-green-200 transition-colors"
-                  >
-                    依結束日填入
-                  </button>
+              {/* 方式 2：直接指定 */}
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                  🎥 方式 2：直接指定結束日
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">結束日期</label>
+                    <input
+                      type="date"
+                      value={quickDateSetup.end_date}
+                      onChange={(e) => setQuickDateSetup(prev => ({ ...prev, end_date: e.target.value }))}
+                      className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={handleQuickDateByEndDate}
+                      disabled={!quickDateSetup.start_date || !quickDateSetup.end_date}
+                      className="w-full bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      📦 套用日期區間
+                    </button>
+                  </div>
                 </div>
+              </div>
+              
+              {/* 使用說明 */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                <p className="text-xs text-yellow-800">
+                  ℹ️ <strong>使用說明</strong>：點擊任一「套用」按鈕將自動填入上方「計畫開始日」和「計畫結束日」欄位
+                </p>
               </div>
             </div>
           )}
@@ -628,22 +675,50 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
           <option value={ProjectStatus.COMPLETED}>已結案</option>
           <option value={ProjectStatus.STALLED}>進度落後</option>
         </select>
-        <p className="text-xs text-gray-500 mt-1">
-          💡 此欄位為管理員管理用，不是進度自動判斷
+        <p className="text-xs mt-1">
+          💡 <span className="font-semibold text-blue-700">管理員手動設定</span>：依管考進度調整工作流程狀態（未來可再做自動判斷）
         </p>
+        {!isAdmin && (
+          <p className="text-xs text-blue-600 mt-1">
+            🔒 僅管理員可調整這個狀態欄位
+          </p>
+        )}
       </div>
     </div>
   );
 
   const renderOperatorSection = () => (
     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Users className="w-5 h-5 text-green-600" />
-        <h3 className="text-lg font-bold text-green-800">
-          操作人員填寫區域
-          {!isOperator && !isAdmin && <span className="text-sm font-normal text-green-600">（唯讀）</span>}
-        </h3>
-        {(isOperator || isAdmin) && <Unlock className="w-4 h-4 text-green-500" />}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-green-600" />
+          <h3 className="text-lg font-bold text-green-800">
+            📋 操作人員填寫區域
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {!isOperator && !isAdmin ? (
+            <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+              <Lock className="w-3 h-3" />
+              <span>僅操作人員可編輯</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {isOperator && (
+                <div className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded">
+                  <Unlock className="w-3 h-3" />
+                  <span>操作人員可編輯</span>
+                </div>
+              )}
+              {isAdmin && (
+                <div className="flex items-center gap-1 text-xs text-blue-700 bg-blue-200 px-2 py-1 rounded">
+                  <Unlock className="w-3 h-3" />
+                  <span>管理員全部可編輯</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -664,6 +739,9 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
           />
           {errors.description && (
             <p className="text-red-500 text-xs mt-1">{errors.description}</p>
+          )}
+          {!isOperator && !isAdmin && (
+            <p className="text-green-600 text-xs mt-1">💡 此欄位由操作人員負責填寫，請等待開案完成後填寫</p>
           )}
         </div>
 
