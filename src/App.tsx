@@ -817,13 +817,40 @@ const App: React.FC = () => {
                   onBack={() => setActiveTab('projects')} 
                   onSave={(data) => {
                     const newProject = {
-                      ...data,
-                      id: data.projectCode || `P${Date.now()}`,
+                      id: data.project_code || `P${Date.now()}`,
+                      projectCode: data.project_code,
+                      name: data.name,
+                      executingUnit: data.executing_unit,
+                      unitId: data.assigned_user_id || '',
+                      unitName: data.executing_unit,
+                      year: data.year,
+                      period: data.period,
+                      category: data.category as '原鄉文化行動' | '都市文化行動',
+                      startDate: data.start_date,
+                      endDate: data.end_date,
                       status: data.status || ProjectStatus.PLANNING,
-                      progress: 0,
-                      spent: 0,
+                      village: data.village,
+                      description: data.description,
+                      budget: data.budget,
+                      appliedAmount: data.applied_amount,
+                      approvedAmount: data.approved_amount,
+                      legalAddress: data.legal_address,
+                      contactAddress: data.contact_address,
+                      siteTypes: data.site_types as ('原鄉' | '都市')[],
+                      sites: data.sites,
+                      representative: data.representative || { name: '', title: '', email: '', phone: '' },
+                      liaison: data.liaison || { name: '', title: '', email: '', phone: '' },
+                      commissioner: data.commissioner || { name: '', title: '', email: '', phone: '' },
+                      chiefStaff: data.chief_staff || { name: '', title: '', email: '', phone: '' },
+                      assignedCoaches: [],
+                      assignedOperators: data.assigned_operators || [],
+                      visions: [],
+                      budgetItems: [],
+                      grants: [],
                       coachingRecords: [],
-                      grants: []
+                      finalReports: [],
+                      progress: 0,
+                      spent: 0
                     } as Project;
                     handleUpdateProject(newProject);
                     setActiveTab('projects');

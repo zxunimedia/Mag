@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   PlusCircle, 
   Building2, 
@@ -11,9 +11,12 @@ import {
   AlertCircle,
   Settings,
   CheckCircle,
-  Clock
+  Clock,
+  Lock,
+  Unlock
 } from 'lucide-react';
-import { UserRole, ProjectStatus } from '../types';
+import { UserRole, ProjectStatus, Project } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 interface ProjectSubmissionProps {
   onBack: () => void;
@@ -21,57 +24,134 @@ interface ProjectSubmissionProps {
   currentUserRole: string;
 }
 
-interface ProjectData {
-  projectCode: string;
+interface ProjectFormData {
+  // 管理員欄位
+  project_code: string;
   name: string;
-  executiveUnit: string;
-  coachName: string;
-  managerName: string;
-  startDate: string;
-  endDate: string;
+  executing_unit: string;
+  advisor_name: string;
+  advisor_email: string;
+  advisor_phone: string;
+  manager_name: string;
+  manager_email: string;
+  manager_phone: string;
+  assigned_user_id: string;
+  start_date: string;
+  end_date: string;
   status: ProjectStatus;
-  // 操作人員填寫的欄位
+  
+  // 操作人員欄位
   description: string;
   budget: number;
-  objectives: string[];
-  expectedOutcomes: string;
+  applied_amount: number;
+  approved_amount: number;
+  village: string;
+  legal_address: string;
+  contact_address: string;
+  site_types: string[];
+  sites: string[];
+  category: string;
+  year: string;
+  period: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  role: string;
+  unit_name: string;
 }
 
 const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, currentUserRole }) => {
   const isAdmin = currentUserRole === UserRole.ADMIN;
   const isOperator = currentUserRole === UserRole.OPERATOR;
+  const isCoach = currentUserRole === UserRole.COACH;
   
-  const [formData, setFormData] = useState<ProjectData>({
-    projectCode: '',
+  // 如果是輔導老師，直接返回無權限訊息
+  if (isCoach) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <Clock className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-amber-800 mb-2">無權限使用此功能</h3>
+          <p className="text-amber-700">輔導老師無法使用「新案提案申請」功能</p>
+          <button
+            onClick={onBack}
+            className="mt-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            返回
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  const [formData, setFormData] = useState<ProjectFormData>({
+    project_code: '',
     name: '',
-    executiveUnit: '',
-    coachName: '',
-    managerName: '',
-    startDate: '',
-    endDate: '',
+    executing_unit: '',
+    advisor_name: '',
+    advisor_email: '',
+    advisor_phone: '',
+    manager_name: '',
+    manager_email: '',
+    manager_phone: '',
+    assigned_user_id: '',
+    start_date: '',
+    end_date: '',
     status: ProjectStatus.PLANNING,
     description: '',
     budget: 0,
-    objectives: [''],
-    expectedOutcomes: ''
+    applied_amount: 0,
+    approved_amount: 0,
+    village: '',
+    legal_address: '',
+    contact_address: '',
+    site_types: [],
+    sites: [],
+    category: '原鄉文化行動',
+    year: new Date().getFullYear().toString(),
+    period: '第一期'
   });
   
-  const [batchDates, setBatchDates] = useState({
-    enabled: false,
-    baseStartDate: '',
-    duration: 12 // 預設12個月
-  });
-  
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [step, setStep] = useState<'admin' | 'operator' | 'review'>('admin');
+  
+  // 批次日期功能
+  const [quickDateSetup, setQuickDateSetup] = useState({
+    enabled: false,
+    start_date: '',
+    duration_months: 12,
+    end_date: ''
+  });
 
-  const handleInputChange = (field: keyof ProjectData, value: any) => {
+  // 載入用戶列表（用於指派）
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, role, unit_name')
+          .order('name');
+        
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (error) {
+        console.error('載入用戶列表失敗:', error);
+      }
+    };
+    
+    loadUsers();
+  }, []);
+
+  const handleInputChange = (field: keyof ProjectFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
     
-    // 清除對應欄位的錯誤
+    // 清除錯誤
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -81,80 +161,68 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
     }
   };
 
-  const handleObjectiveChange = (index: number, value: string) => {
-    const newObjectives = [...formData.objectives];
-    newObjectives[index] = value;
-    setFormData(prev => ({
-      ...prev,
-      objectives: newObjectives
-    }));
-  };
-
-  const addObjective = () => {
-    setFormData(prev => ({
-      ...prev,
-      objectives: [...prev.objectives, '']
-    }));
-  };
-
-  const removeObjective = (index: number) => {
-    if (formData.objectives.length > 1) {
+  const handleQuickDateCalculate = () => {
+    if (quickDateSetup.start_date && quickDateSetup.duration_months > 0) {
+      const startDate = new Date(quickDateSetup.start_date);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + quickDateSetup.duration_months);
+      
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
       setFormData(prev => ({
         ...prev,
-        objectives: prev.objectives.filter((_, i) => i !== index)
+        start_date: quickDateSetup.start_date,
+        end_date: endDateStr
+      }));
+      
+      setQuickDateSetup(prev => ({
+        ...prev,
+        end_date: endDateStr,
+        enabled: false
       }));
     }
   };
 
-  const handleBatchDateCalculate = () => {
-    if (batchDates.baseStartDate && batchDates.duration) {
-      const startDate = new Date(batchDates.baseStartDate);
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + batchDates.duration);
-      
+  const handleQuickDateByEndDate = () => {
+    if (quickDateSetup.start_date && quickDateSetup.end_date) {
       setFormData(prev => ({
         ...prev,
-        startDate: batchDates.baseStartDate,
-        endDate: endDate.toISOString().split('T')[0]
+        start_date: quickDateSetup.start_date,
+        end_date: quickDateSetup.end_date
       }));
       
-      setBatchDates(prev => ({ ...prev, enabled: false }));
+      setQuickDateSetup(prev => ({
+        ...prev,
+        enabled: false
+      }));
     }
   };
 
   const validateAdminFields = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.projectCode.trim()) {
-      newErrors.projectCode = '計畫編號為必填項目';
+    if (!formData.project_code.trim()) {
+      newErrors.project_code = '計畫編號為必填欄位';
     }
     
     if (!formData.name.trim()) {
-      newErrors.name = '計畫名稱為必填項目';
+      newErrors.name = '計畫名稱為必填欄位';
     }
     
-    if (!formData.executiveUnit.trim()) {
-      newErrors.executiveUnit = '執行單位為必填項目';
+    if (!formData.executing_unit.trim()) {
+      newErrors.executing_unit = '執行單位為必填欄位';
     }
     
-    if (!formData.coachName.trim()) {
-      newErrors.coachName = '輔導老師為必填項目';
+    if (!formData.start_date) {
+      newErrors.start_date = '計畫開始日為必填欄位';
     }
     
-    if (!formData.managerName.trim()) {
-      newErrors.managerName = '主責人員為必填項目';
+    if (!formData.end_date) {
+      newErrors.end_date = '計畫結束日為必填欄位';
     }
     
-    if (!formData.startDate) {
-      newErrors.startDate = '計畫開始日為必填項目';
-    }
-    
-    if (!formData.endDate) {
-      newErrors.endDate = '計畫結束日為必填項目';
-    }
-    
-    if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
-      newErrors.endDate = '結束日期不能早於開始日期';
+    if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
+      newErrors.end_date = '結束日不能早於開始日';
     }
     
     setErrors(newErrors);
@@ -164,203 +232,343 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
   const validateOperatorFields = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.description.trim()) {
-      newErrors.description = '計畫描述為必填項目';
-    }
-    
     if (formData.budget <= 0) {
       newErrors.budget = '預算金額必須大於0';
     }
     
-    if (formData.objectives.some(obj => !obj.trim())) {
-      newErrors.objectives = '所有目標項目都必須填寫';
-    }
-    
-    if (!formData.expectedOutcomes.trim()) {
-      newErrors.expectedOutcomes = '預期成果為必填項目';
+    if (!formData.description.trim()) {
+      newErrors.description = '計畫描述為必填欄位';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (step === 'admin' && validateAdminFields()) {
-      setStep('operator');
-    } else if (step === 'operator' && validateOperatorFields()) {
-      setStep('review');
-    } else if (step === 'review') {
-      onSave(formData);
+  const handleSubmit = async () => {
+    setLoading(true);
+    
+    try {
+      // 管理員驗證
+      if (isAdmin && !validateAdminFields()) {
+        setLoading(false);
+        return;
+      }
+      
+      // 操作人員驗證
+      if (isOperator && !validateOperatorFields()) {
+        setLoading(false);
+        return;
+      }
+      
+      // 準備儲存的資料
+      const projectData = {
+        project_code: formData.project_code,
+        name: formData.name,
+        executing_unit: formData.executing_unit,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        status: formData.status,
+        description: formData.description,
+        budget: formData.budget,
+        applied_amount: formData.applied_amount,
+        approved_amount: formData.approved_amount,
+        village: formData.village,
+        legal_address: formData.legal_address,
+        contact_address: formData.contact_address,
+        site_types: formData.site_types,
+        sites: formData.sites,
+        category: formData.category,
+        year: formData.year,
+        period: formData.period,
+        // 聯絡資訊以 JSON 格式儲存
+        representative: {
+          name: formData.manager_name,
+          email: formData.manager_email,
+          phone: formData.manager_phone
+        },
+        commissioner: {
+          name: formData.advisor_name,
+          email: formData.advisor_email,
+          phone: formData.advisor_phone
+        },
+        assigned_operators: formData.assigned_user_id ? [formData.assigned_user_id] : [],
+        progress: 0,
+        spent: 0
+      };
+      
+      onSave(projectData);
+    } catch (error) {
+      console.error('儲存失敗:', error);
+      setErrors({ general: '儲存失敗，請稍後重試' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderAdminForm = () => (
-    <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
-          <Settings className="w-5 h-5" />
-          管理員開案階段
+  const renderAdminSection = () => (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Settings className="w-5 h-5 text-blue-600" />
+        <h3 className="text-lg font-bold text-blue-800">
+          管理員開案區域 
+          {!isAdmin && <span className="text-sm font-normal text-blue-600">（唯讀）</span>}
         </h3>
-        <p className="text-sm text-blue-700">
-          請填寫計畫基本資訊，完成後將進入操作人員協作填寫階段
-        </p>
+        {!isAdmin && <Lock className="w-4 h-4 text-blue-500" />}
       </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 計畫編號 */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            <Hash className="w-4 h-4 inline mr-1" />
+            計畫編號 *
+          </label>
+          <input
+            type="text"
+            value={formData.project_code}
+            onChange={(e) => handleInputChange('project_code', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.project_code ? 'border-red-300' : 'border-gray-300'}`}
+            placeholder="例如：MOC-2026-001"
+          />
+          {errors.project_code && (
+            <p className="text-red-500 text-xs mt-1">{errors.project_code}</p>
+          )}
+        </div>
 
-      {/* 計畫編號 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          <Hash className="w-4 h-4 inline mr-1" />
-          計畫編號 *
-        </label>
-        <input
-          type="text"
-          value={formData.projectCode}
-          onChange={(e) => handleInputChange('projectCode', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-            errors.projectCode ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="例如：MOC-2026-001"
-        />
-        {errors.projectCode && (
-          <p className="text-red-500 text-xs mt-1">{errors.projectCode}</p>
-        )}
-      </div>
+        {/* 計畫名稱 */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            <PlusCircle className="w-4 h-4 inline mr-1" />
+            計畫名稱 *
+          </label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.name ? 'border-red-300' : 'border-gray-300'}`}
+            placeholder="請輸入計畫名稱"
+          />
+          {errors.name && (
+            <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+          )}
+        </div>
 
-      {/* 計畫名稱 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          <PlusCircle className="w-4 h-4 inline mr-1" />
-          計畫名稱 *
-        </label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => handleInputChange('name', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-            errors.name ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="請輸入計畫名稱"
-        />
-        {errors.name && (
-          <p className="text-red-500 text-xs mt-1">{errors.name}</p>
-        )}
-      </div>
+        {/* 執行單位 */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            <Building2 className="w-4 h-4 inline mr-1" />
+            執行單位 *
+          </label>
+          <input
+            type="text"
+            value={formData.executing_unit}
+            onChange={(e) => handleInputChange('executing_unit', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.executing_unit ? 'border-red-300' : 'border-gray-300'}`}
+            placeholder="請輸入執行單位名稱"
+          />
+          {errors.executing_unit && (
+            <p className="text-red-500 text-xs mt-1">{errors.executing_unit}</p>
+          )}
+        </div>
 
-      {/* 執行單位 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          <Building2 className="w-4 h-4 inline mr-1" />
-          執行單位 *
-        </label>
-        <input
-          type="text"
-          value={formData.executiveUnit}
-          onChange={(e) => handleInputChange('executiveUnit', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-            errors.executiveUnit ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="請輸入執行單位名稱"
-        />
-        {errors.executiveUnit && (
-          <p className="text-red-500 text-xs mt-1">{errors.executiveUnit}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {/* 輔導老師 */}
+        {/* 輔導老師資訊 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">
             <User className="w-4 h-4 inline mr-1" />
-            輔導老師 *
+            輔導老師姓名
           </label>
           <input
             type="text"
-            value={formData.coachName}
-            onChange={(e) => handleInputChange('coachName', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              errors.coachName ? 'border-red-300' : 'border-gray-300'
+            value={formData.advisor_name}
+            onChange={(e) => handleInputChange('advisor_name', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
             }`}
             placeholder="輔導老師姓名"
           />
-          {errors.coachName && (
-            <p className="text-red-500 text-xs mt-1">{errors.coachName}</p>
-          )}
         </div>
 
-        {/* 主責人員 */}
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">輔導老師信箱</label>
+          <input
+            type="email"
+            value={formData.advisor_email}
+            onChange={(e) => handleInputChange('advisor_email', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="輔導老師信箱"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">輔導老師電話</label>
+          <input
+            type="tel"
+            value={formData.advisor_phone}
+            onChange={(e) => handleInputChange('advisor_phone', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="輔導老師電話"
+          />
+        </div>
+
+        {/* 主責人員資訊 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">
             <Users className="w-4 h-4 inline mr-1" />
-            主責人員 *
+            主責人員姓名
           </label>
           <input
             type="text"
-            value={formData.managerName}
-            onChange={(e) => handleInputChange('managerName', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              errors.managerName ? 'border-red-300' : 'border-gray-300'
+            value={formData.manager_name}
+            onChange={(e) => handleInputChange('manager_name', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
             }`}
             placeholder="主責人員姓名"
           />
-          {errors.managerName && (
-            <p className="text-red-500 text-xs mt-1">{errors.managerName}</p>
-          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">主責人員信箱</label>
+          <input
+            type="email"
+            value={formData.manager_email}
+            onChange={(e) => handleInputChange('manager_email', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="主責人員信箱"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">主責人員電話</label>
+          <input
+            type="tel"
+            value={formData.manager_phone}
+            onChange={(e) => handleInputChange('manager_phone', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="主責人員電話"
+          />
+        </div>
+
+        {/* 指派操作人員 */}
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">指派操作人員</label>
+          <select
+            value={formData.assigned_user_id}
+            onChange={(e) => handleInputChange('assigned_user_id', e.target.value)}
+            disabled={!isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <option value="">請選擇操作人員</option>
+            {users.filter(user => user.role === 'UNIT_OPERATOR').map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name} ({user.unit_name})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* 批次日期設定 */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <input
-            type="checkbox"
-            id="batchDates"
-            checked={batchDates.enabled}
-            onChange={(e) => setBatchDates(prev => ({ ...prev, enabled: e.target.checked }))}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label htmlFor="batchDates" className="text-sm font-bold text-gray-700">
-            <Calendar className="w-4 h-4 inline mr-1" />
-            批次日期計算
-          </label>
-        </div>
+      {/* 快速填入期程 */}
+      {isAdmin && (
+        <div className="mt-6 bg-white border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="checkbox"
+              id="quickDate"
+              checked={quickDateSetup.enabled}
+              onChange={(e) => setQuickDateSetup(prev => ({ ...prev, enabled: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="quickDate" className="text-sm font-bold text-gray-700">
+              <Calendar className="w-4 h-4 inline mr-1" />
+              快速填入期程
+            </label>
+            <span className="text-xs text-gray-500">（此功能為快速填入，不是進度判斷）</span>
+          </div>
 
-        {batchDates.enabled && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">基準開始日</label>
-                <input
-                  type="date"
-                  value={batchDates.baseStartDate}
-                  onChange={(e) => setBatchDates(prev => ({ ...prev, baseStartDate: e.target.value }))}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                />
+          {quickDateSetup.enabled && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">開始日期</label>
+                  <input
+                    type="date"
+                    value={quickDateSetup.start_date}
+                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">執行月數</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={quickDateSetup.duration_months}
+                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, duration_months: parseInt(e.target.value) }))}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">執行期間（月）</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={batchDates.duration}
-                  onChange={(e) => setBatchDates(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                />
+              
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleQuickDateCalculate}
+                  className="w-full bg-blue-100 text-blue-800 py-2 px-3 rounded text-sm hover:bg-blue-200 transition-colors"
+                >
+                  依月數計算結束日
+                </button>
+                
+                <div className="space-y-2">
+                  <input
+                    type="date"
+                    value={quickDateSetup.end_date}
+                    onChange={(e) => setQuickDateSetup(prev => ({ ...prev, end_date: e.target.value }))}
+                    placeholder="或直接指定結束日"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickDateByEndDate}
+                    className="w-full bg-green-100 text-green-800 py-1 px-2 rounded text-xs hover:bg-green-200 transition-colors"
+                  >
+                    依結束日填入
+                  </button>
+                </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleBatchDateCalculate}
-              className="w-full bg-blue-100 text-blue-800 py-2 px-3 rounded text-sm hover:bg-blue-200 transition-colors"
-            >
-              計算並填入日期
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* 日期範圍 */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* 計畫日期 */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">
             <Calendar className="w-4 h-4 inline mr-1" />
@@ -368,14 +576,15 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
           </label>
           <input
             type="date"
-            value={formData.startDate}
-            onChange={(e) => handleInputChange('startDate', e.target.value)}
+            value={formData.start_date}
+            onChange={(e) => handleInputChange('start_date', e.target.value)}
+            disabled={!isAdmin}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              errors.startDate ? 'border-red-300' : 'border-gray-300'
-            }`}
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.start_date ? 'border-red-300' : 'border-gray-300'}`}
           />
-          {errors.startDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
+          {errors.start_date && (
+            <p className="text-red-500 text-xs mt-1">{errors.start_date}</p>
           )}
         </div>
 
@@ -386,20 +595,21 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
           </label>
           <input
             type="date"
-            value={formData.endDate}
-            onChange={(e) => handleInputChange('endDate', e.target.value)}
+            value={formData.end_date}
+            onChange={(e) => handleInputChange('end_date', e.target.value)}
+            disabled={!isAdmin}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              errors.endDate ? 'border-red-300' : 'border-gray-300'
-            }`}
+              !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.end_date ? 'border-red-300' : 'border-gray-300'}`}
           />
-          {errors.endDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>
+          {errors.end_date && (
+            <p className="text-red-500 text-xs mt-1">{errors.end_date}</p>
           )}
         </div>
       </div>
 
       {/* 計畫狀態 */}
-      <div>
+      <div className="mt-4">
         <label className="block text-sm font-bold text-gray-700 mb-2">
           <CheckCircle className="w-4 h-4 inline mr-1" />
           計畫狀態
@@ -407,191 +617,199 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
         <select
           value={formData.status}
           onChange={(e) => handleInputChange('status', e.target.value as ProjectStatus)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          disabled={!isAdmin}
+          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+          }`}
         >
           <option value={ProjectStatus.PLANNING}>規劃中</option>
-          <option value={ProjectStatus.ACTIVE}>進行中</option>
-          <option value={ProjectStatus.ON_HOLD}>暫停</option>
-          <option value={ProjectStatus.COMPLETED}>已完成</option>
+          <option value={ProjectStatus.ONGOING}>執行中</option>
+          <option value={ProjectStatus.REVIEWING}>考評中</option>
+          <option value={ProjectStatus.COMPLETED}>已結案</option>
+          <option value={ProjectStatus.STALLED}>進度落後</option>
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          💡 提示：系統也會根據進度自動判斷狀態，此設定為初始狀態
+          💡 此欄位為管理員管理用，不是進度自動判斷
         </p>
       </div>
     </div>
   );
 
-  const renderOperatorForm = () => (
-    <div className="space-y-6">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="font-bold text-green-800 mb-2 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          操作人員填寫階段
+  const renderOperatorSection = () => (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Users className="w-5 h-5 text-green-600" />
+        <h3 className="text-lg font-bold text-green-800">
+          操作人員填寫區域
+          {!isOperator && !isAdmin && <span className="text-sm font-normal text-green-600">（唯讀）</span>}
         </h3>
-        <p className="text-sm text-green-700">
-          管理員已完成基本資訊設定，請補充詳細計畫內容
-        </p>
+        {(isOperator || isAdmin) && <Unlock className="w-4 h-4 text-green-500" />}
       </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 計畫描述 */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            計畫描述 *
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            rows={4}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.description ? 'border-red-300' : 'border-gray-300'}`}
+            placeholder="請詳細描述計畫內容、背景與重要性..."
+          />
+          {errors.description && (
+            <p className="text-red-500 text-xs mt-1">{errors.description}</p>
+          )}
+        </div>
 
-      {/* 計畫描述 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          計畫描述 *
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          rows={4}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-            errors.description ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="請詳細描述計畫內容、背景與重要性..."
-        />
-        {errors.description && (
-          <p className="text-red-500 text-xs mt-1">{errors.description}</p>
-        )}
-      </div>
+        {/* 預算相關 */}
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            預算金額（元）*
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={formData.budget}
+            onChange={(e) => handleInputChange('budget', parseInt(e.target.value) || 0)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            } ${errors.budget ? 'border-red-300' : 'border-gray-300'}`}
+            placeholder="請輸入預算金額"
+          />
+          {errors.budget && (
+            <p className="text-red-500 text-xs mt-1">{errors.budget}</p>
+          )}
+        </div>
 
-      {/* 預算金額 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          預算金額（元）*
-        </label>
-        <input
-          type="number"
-          min="0"
-          value={formData.budget}
-          onChange={(e) => handleInputChange('budget', parseInt(e.target.value) || 0)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-            errors.budget ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="請輸入預算金額"
-        />
-        {errors.budget && (
-          <p className="text-red-500 text-xs mt-1">{errors.budget}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">申請金額（元）</label>
+          <input
+            type="number"
+            min="0"
+            value={formData.applied_amount}
+            onChange={(e) => handleInputChange('applied_amount', parseInt(e.target.value) || 0)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="申請金額"
+          />
+        </div>
 
-      {/* 計畫目標 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          計畫目標 *
-        </label>
-        {formData.objectives.map((objective, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={objective}
-              onChange={(e) => handleObjectiveChange(index, e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={`目標 ${index + 1}`}
-            />
-            {formData.objectives.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeObjective(index)}
-                className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-              >
-                移除
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={addObjective}
-          className="w-full py-2 px-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-        >
-          + 新增目標
-        </button>
-        {errors.objectives && (
-          <p className="text-red-500 text-xs mt-1">{errors.objectives}</p>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mess2">核定金額（元）</label>
+          <input
+            type="number"
+            min="0"
+            value={formData.approved_amount}
+            onChange={(e) => handleInputChange('approved_amount', parseInt(e.target.value) || 0)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="核定金額"
+          />
+        </div>
 
-      {/* 預期成果 */}
-      <div>
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          預期成果 *
-        </label>
-        <textarea
-          value={formData.expectedOutcomes}
-          onChange={(e) => handleInputChange('expectedOutcomes', e.target.value)}
-          rows={3}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-            errors.expectedOutcomes ? 'border-red-300' : 'border-gray-300'
-          }`}
-          placeholder="請描述計畫預期達成的成果與效益..."
-        />
-        {errors.expectedOutcomes && (
-          <p className="text-red-500 text-xs mt-1">{errors.expectedOutcomes}</p>
-        )}
-      </div>
-    </div>
-  );
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">實施村里</label>
+          <input
+            type="text"
+            value={formData.village}
+            onChange={(e) => handleInputChange('village', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="實施村里"
+          />
+        </div>
 
-  const renderReview = () => (
-    <div className="space-y-6">
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <h3 className="font-bold text-purple-800 mb-2 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          最終確認
-        </h3>
-        <p className="text-sm text-purple-700">
-          請檢查所有資訊是否正確，確認後將創建新計畫
-        </p>
-      </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">計畫分類</label>
+          <select
+            value={formData.category}
+            onChange={(e) => handleInputChange('category', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <option value="原鄉文化行動">原鄉文化行動</option>
+            <option value="都市文化行動">都市文化行動</option>
+          </select>
+        </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-        <h4 className="font-bold text-gray-800">基本資訊</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div><strong>計畫編號:</strong> {formData.projectCode}</div>
-          <div><strong>計畫名稱:</strong> {formData.name}</div>
-          <div><strong>執行單位:</strong> {formData.executiveUnit}</div>
-          <div><strong>輔導老師:</strong> {formData.coachName}</div>
-          <div><strong>主責人員:</strong> {formData.managerName}</div>
-          <div><strong>執行期間:</strong> {formData.startDate} ~ {formData.endDate}</div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">執行年度</label>
+          <input
+            type="text"
+            value={formData.year}
+            onChange={(e) => handleInputChange('year', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="執行年度"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">執行期別</label>
+          <select
+            value={formData.period}
+            onChange={(e) => handleInputChange('period', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <option value="第一期">第一期</option>
+            <option value="第二期">第二期</option>
+            <option value="第三期">第三期</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">法人立案地址</label>
+          <input
+            type="text"
+            value={formData.legal_address}
+            onChange={(e) => handleInputChange('legal_address', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="法人立案地址"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-bold text-gray-700 mb-2">通訊地址</label>
+          <input
+            type="text"
+            value={formData.contact_address}
+            onChange={(e) => handleInputChange('contact_address', e.target.value)}
+            disabled={!isOperator && !isAdmin}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+              !isOperator && !isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
+            placeholder="通訊地址"
+          />
         </div>
       </div>
-
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-        <h4 className="font-bold text-gray-800">詳細內容</h4>
-        <div className="text-sm space-y-2">
-          <div><strong>預算:</strong> NT$ {formData.budget?.toLocaleString()}</div>
-          <div><strong>描述:</strong> {formData.description}</div>
-          <div><strong>目標:</strong> 
-            <ul className="ml-4 mt-1">
-              {formData.objectives.map((obj, index) => (
-                <li key={index} className="list-disc">{obj}</li>
-              ))}
-            </ul>
-          </div>
-          <div><strong>預期成果:</strong> {formData.expectedOutcomes}</div>
-        </div>
-      </div>
     </div>
   );
-
-  const getStepName = () => {
-    switch (step) {
-      case 'admin': return '管理員開案';
-      case 'operator': return '操作人員填寫';
-      case 'review': return '最終確認';
-      default: return '';
-    }
-  };
-
-  const getNextButtonText = () => {
-    switch (step) {
-      case 'admin': return '進入操作人員階段';
-      case 'operator': return '進入最終確認';
-      case 'review': return '創建計畫';
-      default: return '繼續';
-    }
-  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg">
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -600,28 +818,11 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
                 <PlusCircle className="w-6 h-6 text-blue-600" />
                 新案提案申請
               </h1>
-              <p className="text-gray-600 mt-1">協作式計畫創建流程</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">當前階段</div>
-              <div className="font-bold text-blue-600">{getStepName()}</div>
-            </div>
-          </div>
-          
-          {/* 進度條 */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-              <span>管理員開案</span>
-              <span>操作人員填寫</span>
-              <span>最終確認</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ 
-                  width: step === 'admin' ? '33%' : step === 'operator' ? '67%' : '100%' 
-                }}
-              />
+              <p className="text-gray-600 mt-1">
+                分工協作式計畫建立 - 
+                {isAdmin && '管理員開案模式'}
+                {isOperator && '操作人員協作模式'}
+              </p>
             </div>
           </div>
         </div>
@@ -641,42 +842,11 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
             </div>
           )}
 
-          {/* 如果不是管理員且在管理員階段，顯示等待訊息 */}
-          {!isAdmin && step === 'admin' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-              <Clock className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-              <h3 className="font-bold text-amber-800">等待管理員開案</h3>
-              <p className="text-amber-700 text-sm mt-1">
-                此階段需要管理員填寫基本資訊，完成後您可以繼續填寫詳細內容
-              </p>
-            </div>
-          )}
+          {/* 管理員區域 */}
+          {renderAdminSection()}
 
-          {/* 如果是操作人員且在操作人員階段，或是管理員，顯示對應表單 */}
-          {((isAdmin && step === 'admin') || (isOperator && step === 'operator') || step === 'review') && (
-            <>
-              {step === 'admin' && renderAdminForm()}
-              {step === 'operator' && renderOperatorForm()}
-              {step === 'review' && renderReview()}
-            </>
-          )}
-
-          {/* 如果是管理員但在操作人員階段，顯示等待訊息 */}
-          {isAdmin && step === 'operator' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <Clock className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-bold text-green-800">等待操作人員填寫</h3>
-              <p className="text-green-700 text-sm mt-1">
-                基本資訊已設定完成，等待操作人員補充詳細內容
-              </p>
-              <button
-                onClick={() => setStep('review')}
-                className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-              >
-                跳過並直接完成（管理員權限）
-              </button>
-            </div>
-          )}
+          {/* 操作人員區域 */}
+          {renderOperatorSection()}
         </div>
 
         <div className="border-t border-gray-200 p-6 bg-gray-50">
@@ -689,27 +859,21 @@ const ProjectSubmission: React.FC<ProjectSubmissionProps> = ({ onBack, onSave, c
               返回
             </button>
             
-            <div className="flex gap-3">
-              {step !== 'admin' && (
-                <button
-                  onClick={() => setStep(step === 'review' ? 'operator' : 'admin')}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  上一步
-                </button>
-              )}
-              
-              {/* 只有在對應角色的階段才顯示繼續按鈕 */}
-              {((isAdmin && step === 'admin') || (isOperator && step === 'operator') || step === 'review') && (
-                <button
-                  onClick={handleSubmit}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
+            {/* 只有管理員或操作人員可以儲存 */}
+            {(isAdmin || isOperator) && (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <Clock className="w-4 h-4 animate-spin" />
+                ) : (
                   <Save className="w-4 h-4" />
-                  {getNextButtonText()}
-                </button>
-              )}
-            </div>
+                )}
+                {loading ? '儲存中...' : '建立計畫'}
+              </button>
+            )}
           </div>
         </div>
       </div>
