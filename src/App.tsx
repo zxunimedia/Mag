@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import ProjectList from './components/ProjectList';
 import ProjectDetail from './components/ProjectDetail';
 import ProjectForm from './components/ProjectForm';
+import ProjectSubmission from './components/ProjectSubmission';
 import ProjectExecutionControl from './components/ProjectExecutionControl';
 import CoachingRecords from './components/CoachingRecords';
 import CoachingFinalReport from './components/CoachingFinalReport';
@@ -810,15 +811,15 @@ const App: React.FC = () => {
               {activeTab === 'coaching' && <CoachingRecords projects={visibleProjects} coachingRecords={coachingRecords} onSaveRecord={handleSaveCoachingRecord} onDeleteRecord={handleDeleteCoachingRecord} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
               {activeTab === 'finalReport' && <FinalReports projects={visibleProjects} finalReports={finalReports} onSaveReport={handleSaveFinalReport} onDeleteReport={handleDeleteFinalReport} currentUserRole={currentUser.role} currentUserUnitId={currentUser.unitId} />}
               
-              {/* 新案提案申請：儲存為新計畫 */}
-              {activeTab === 'submission' && isAdmin && (
-                <ProjectForm 
+              {/* 新案提案申請：管理員和操作人員協作式填寫 */}
+              {activeTab === 'submission' && !isCoach && (
+                <ProjectSubmission
                   onBack={() => setActiveTab('projects')} 
                   onSave={(data) => {
                     const newProject = {
                       ...data,
-                      id: `P${Date.now()}`,
-                      status: ProjectStatus.PLANNING,
+                      id: data.projectCode || `P${Date.now()}`,
+                      status: data.status || ProjectStatus.PLANNING,
                       progress: 0,
                       spent: 0,
                       coachingRecords: [],

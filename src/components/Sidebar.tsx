@@ -37,8 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, userRole }) 
     ...(!isCoach ? [{ id: 'grants', icon: CheckCircle, label: '4. 撥付進度' }] : []),
     // 管理員和輔導老師可以看到輔導老師結案報告產製
     ...((isAdmin || isCoach) ? [{ id: 'finalReport', icon: FileCheck, label: '輔導老師結案報告產製' }] : []),
-    // 只有管理員可以看到新案提案
-    ...(isAdmin ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
+    // 管理員和操作人員都可以看到新案提案申請（不同權限）
+    ...(!isCoach ? [{ id: 'submission', icon: PlusCircle, label: '新案提案申請' }] : []),
     // 只有管理員可以看到權限管理
     ...(isAdmin ? [{ id: 'permissions', icon: Shield, label: '權限管理' }] : []),
   ];
