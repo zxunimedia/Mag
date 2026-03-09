@@ -555,11 +555,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div className="space-y-3">
-              <div className="text-sm text-gray-600 space-y-2">
-                <p><strong>📧 驗證信已寄出</strong></p>
-                <p>請至信箱點擊驗證連結完成啟用。完成後即可返回登入。</p>
-                <p className="pt-2 border-t border-gray-200">需要協助請聯絡管理員：mag@atipd.tw</p>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="font-bold text-blue-800 mb-2">📧 驗證信已寄出</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                請至信箱點擊驗證連結完成啟用。完成後即可返回登入。
+              </p>
+              <div className="border-t border-blue-300 pt-2">
+                <p className="text-sm text-blue-700">
+                  需要協助請聯絡管理員：<strong>mag@atipd.tw</strong>
+                </p>
               </div>
             </div>
 

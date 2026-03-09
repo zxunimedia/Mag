@@ -116,6 +116,28 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
           // 繼續流程，因為 Auth 用戶已經創建
         }
 
+        // 保存註冊成功的帳密資訊到本地記錄
+        const registrationRecord = {
+          id: authData.user.id,
+          email: formData.email,
+          password: formData.password, // 明文保存供測試使用
+          name: formData.name,
+          role: roleMap[formData.role] ?? 'UNIT_OPERATOR',
+          unitId: formData.role === UserRole.COACH ? 'MOC' : formData.unitId || null,
+          unitName: formData.role === UserRole.COACH ? '文化部' : formData.unitName || null,
+          registeredAt: new Date().toISOString(),
+          status: 'pending_verification' // 等待email驗證
+        };
+
+        // 保存到 localStorage（供管理員查看所有註冊記錄）
+        try {
+          const existingRecords = JSON.parse(localStorage.getItem('registrationRecords') || '[]');
+          existingRecords.push(registrationRecord);
+          localStorage.setItem('registrationRecords', JSON.stringify(existingRecords));
+        } catch (err) {
+          console.error('Failed to save registration record:', err);
+        }
+
         setStep('PENDING');
       }
     } catch (err) {
@@ -157,14 +179,51 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
   if (step === 'PENDING') {
     return renderContent(
       <div className="text-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-blue-600" />
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">驗證信已寄出</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">註冊成功！</h2>
+        
+        {/* 帳號資訊卡片 - 供客戶保存 */}
+        <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-lg border-2 border-blue-200 mb-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center gap-2">
+            <Lock className="w-5 h-5 text-blue-600" />
+            請保存您的帳號資訊
+          </h3>
+          <div className="bg-white p-4 rounded-lg border border-gray-200 text-left space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-700">帳號 (Email):</span>
+              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">{formData.email}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-700">密碼:</span>
+              <span className="font-mono bg-yellow-100 px-2 py-1 rounded text-sm font-bold">{formData.password}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-700">姓名:</span>
+              <span className="text-gray-600">{formData.name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-700">角色:</span>
+              <span className="text-gray-600">
+                {formData.role === UserRole.ADMIN ? '系統管理員' : 
+                 formData.role === UserRole.COACH ? '輔導老師' : '執行單位操作人員'}
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600 mt-3 text-center">
+            ⚠️ 請截圖或手動記錄上述帳密資訊，以便日後登入測試
+          </p>
+        </div>
+
         <div className="space-y-4 text-left">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-bold text-blue-800 mb-2">📧 下一步：驗證您的信箱</h4>
             <p className="text-sm text-blue-700">
-              請至信箱點擊驗證連結完成啟用。完成後即可返回登入。
+              驗證信已發送至 <strong>{formData.email}</strong>
+            </p>
+            <p className="text-sm text-blue-700 mt-1">
+              請至信箱點擊驗證連結完成啟用。完成後即可使用上述帳密登入系統。
             </p>
           </div>
           
@@ -180,9 +239,9 @@ const SelfRegistration: React.FC<SelfRegistrationProps> = ({ onBack, onSuccess, 
             setStep('SUCCESS');
             onSuccess();
           }}
-          className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          className="mt-6 w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
         >
-          返回登入頁面
+          確認已保存帳密資訊，返回登入頁面
         </button>
       </div>
     );

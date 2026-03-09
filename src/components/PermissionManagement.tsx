@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Project } from '../types';
 import { supabase, adminCreateUser, resendConfirmation } from '../services/supabaseClient';
-import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Lock, Mail, Shield, ArrowLeft, ChevronDown, CheckCircle2, Users } from 'lucide-react';
+import AccountRegistry from './AccountRegistry';
 
 interface PermissionManagementProps {
   projects: Project[];
@@ -52,6 +53,7 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [pendingConfirmationEmails, setPendingConfirmationEmails] = useState<string[]>([]);
+  const [showAccountRegistry, setShowAccountRegistry] = useState(false);
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: '',
     email: '',
@@ -347,16 +349,29 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">權限管理</h2>
-          <p className="text-gray-500">管理系統用戶、角色和計畫分配</p>
-        </div>
-      </div>
+    <>
+      {showAccountRegistry ? (
+        <AccountRegistry onBack={() => setShowAccountRegistry(false)} />
+      ) : (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-lg">
+                <ArrowLeft />
+              </button>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">權限管理</h2>
+                <p className="text-gray-500">管理系統用戶、角色和計畫分配</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAccountRegistry(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              帳號註冊記錄
+            </button>
+          </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-6">
@@ -758,7 +773,9 @@ const PermissionManagement: React.FC<PermissionManagementProps> = ({ projects, u
           </div>
         </div>
       </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
